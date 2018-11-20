@@ -1,0 +1,60 @@
+# MIF 2.1 ---------------------------------------------------------------------
+# Authors: D. Cortes
+
+set PI [expr {4 * atan(1.)}]
+set MU0 [expr {4 * $PI * 1e-7}]
+
+# PdFe on Ir(111) [PRL, 114(17):1-5, 2015]
+set Ms [expr {1e6}]
+set A  [expr {1e-12}]
+
+set XL [expr {3e-9}]
+set YL [expr {3e-9}]
+set ZL [expr {1e-9}]
+
+set xcell [expr {1e-9}]
+set ycell [expr {1e-9}]
+set zcell [expr {1e-9}]
+
+# -----------------------------------------------------------------------------
+
+# BoxAtlas
+Specify Oxs_BoxAtlas:atlas [subst {
+  xrange {0 $XL}
+  yrange {0 $YL}
+  zrange {0 $ZL}
+  name atlas
+}]
+
+# RectangularMesh
+Specify Oxs_RectangularMesh:mesh [subst {
+  cellsize {$xcell $ycell $zcell}
+  atlas Oxs_BoxAtlas:atlas
+}]
+
+# UniformExchange
+Specify Oxs_UniformExchange [subst {
+  A $A
+}]
+
+# CGEvolver
+Specify Oxs_CGEvolve {}
+
+# MinDriver
+Specify Oxs_MinDriver [subst {
+  evolver Oxs_CGEvolve
+  stopping_mxHxm 0.1
+  mesh :mesh
+  Ms $Ms
+  m0 {0 0 1}
+ 
+  basename test
+  scalar_field_output_format {text %\#.15g}
+  vector_field_output_format {text %\#.15g}
+}]
+
+Destination table mmArchive
+Destination mags mmArchive
+
+Schedule DataTable table Stage 1
+Schedule Oxs_MinDriver::Magnetization mags Stage 1

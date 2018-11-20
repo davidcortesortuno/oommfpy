@@ -67,7 +67,7 @@ class OOMMFData(object):
         data += line
 
         attrs = {'xstepsize': 'dx',  'ystepsize': 'dy', 'zstepsize': 'dz',
-                 'xbase': 'xbase',  'ybase': 'ybase', 'zbase': 'zbase',
+                 # 'xbase': 'xbase',  'ybase': 'ybase', 'zbase': 'zbase',
                  'xmin': 'xmin', 'ymin': 'ymin', 'zmin': 'zmin',
                  'xmax': 'xmax', 'ymax': 'ymax', 'zmax': 'zmax',
                  }
@@ -94,8 +94,9 @@ class OOMMFData(object):
         if self.data_format == 'Binary 4':
             flag = _file.read(4)
             if struct.unpack('>f', flag)[0] == 1234567.0:
+                print(struct.unpack('>f', flag)[0])
                 self._dtype = '>f4'
-            if struct.unpack('<f', flag)[0] == 1234567.0:
+            elif struct.unpack('<f', flag)[0] == 1234567.0:
                 self._dtype = '<f4'
             else:
                 raise Exception('Cannot get binary data dtype')
@@ -104,10 +105,36 @@ class OOMMFData(object):
             flag = _file.read(8)
             if struct.unpack('>d', flag)[0] == 123456789012345.0:
                 self._dtype = '>f8'
-            if struct.unpack('<d', flag)[0] == 123456789012345.0:
+            elif struct.unpack('<d', flag)[0] == 123456789012345.0:
                 self._dtype = '<f8'
             else:
                 raise Exception('Cannot get binary data dtype')
+
+        # Check mesh type to calculate the base positions ---------------------
+
+        # Get the first 3 values if using binary data
+        if self.data_format.startswith('Binary'):
+            first_num_data = []
+            for i in range(3):
+                # the data using the number of binary bits
+                num_data = _file.read(int(self.data_format[-1]))
+                # unpack using dtype without the num of bits
+                first_num_data.append(struct.unpack(self._dtype[:-1],
+                                                    num_data)[0])
+        # else read the next line after: Begin: Data with the coords and spins
+        else:
+            first_num_data = _file.readline()[1:].split(' ')
+
+        self.meshtype = re.search('(?<=meshtype: )[a-z]+', data).group(0)
+
+        for i, k in enumerate(['xbase', 'ybase', 'zbase']):
+            if self.meshtype == 'irregular':
+                setattr(self, k, float(first_num_data[i]))
+            elif self.meshtype == 'rectangular':
+                num_val = float(re.search('(?<={}: )[0-9\-\.e]+'.format(k),
+                                data).group(0))
+                setattr(self, k, num_val)
+        # ---------------------------------------------------------------------
 
         _file.close()
 
@@ -147,12 +174,20 @@ class OOMMFData(object):
                 # Discard the first element (flag) and discard the final data,
                 # which is the final comment ending the data file (the binary
                 # decoding of numpy transforms this comment in non-sense numbers)
-                data = data[1:3 * n_spins + 1]
+                if self.meshtype == 'irregular':
+                    data = data[1:6 * n_spins + 1]
+                    # only get the last 3 cols with spin data
+                    data = data[:, 3:]
+                elif self.meshtype == 'rectangular':
+                    data = data[1:3 * n_spins + 1]
                 # Finally reshape to have columns: mx my mz
                 data.shape = (-1, 3)
 
         else:
-            data = np.loadtxt(self.input_file)
+            if self.meshtype == 'irregular':
+                data = np.loadtxt(self.input_file, usecols=[3, 4, 5])
+            elif self.meshtype == 'rectangular':
+                data = np.loadtxt(self.input_file)
 
         self.Ms = np.sqrt(np.sum(data ** 2, axis=1))
         self.Ms[self.Ms == 0.0] = 0.0
