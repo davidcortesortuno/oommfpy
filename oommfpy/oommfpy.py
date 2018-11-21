@@ -87,14 +87,13 @@ class OOMMFData(object):
         self.ny = int((self.ymax - self.ymin) / self.dy)
         self.nz = int((self.zmax - self.zmin) / self.dz)
 
-
         # Obtain binary data type from header and check the dtype
         # to use it in Numpy's methods
         # Based on: https://github.com/deparkes/OOMMFTools/blob/master/oommftools/core/oommfdecode.py
         if self.data_format == 'Binary 4':
             flag = _file.read(4)
             if struct.unpack('>f', flag)[0] == 1234567.0:
-                print(struct.unpack('>f', flag)[0])
+                # print(struct.unpack('>f', flag)[0])
                 self._dtype = '>f4'
             elif struct.unpack('<f', flag)[0] == 1234567.0:
                 self._dtype = '<f4'
@@ -174,14 +173,13 @@ class OOMMFData(object):
                 # Discard the first element (flag) and discard the final data,
                 # which is the final comment ending the data file (the binary
                 # decoding of numpy transforms this comment in non-sense numbers)
+                # Finally reshape to have columns: mx my mz
                 if self.meshtype == 'irregular':
-                    data = data[1:6 * n_spins + 1]
+                    data = data[1:6 * n_spins + 1].reshape(-1, 6)
                     # only get the last 3 cols with spin data
                     data = data[:, 3:]
                 elif self.meshtype == 'rectangular':
-                    data = data[1:3 * n_spins + 1]
-                # Finally reshape to have columns: mx my mz
-                data.shape = (-1, 3)
+                    data = data[1:3 * n_spins + 1].reshape(-1, 3)
 
         else:
             if self.meshtype == 'irregular':
