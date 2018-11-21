@@ -5,8 +5,8 @@ set PI [expr {4 * atan(1.)}]
 set MU0 [expr {4 * $PI * 1e-7}]
 
 # PdFe on Ir(111) [PRL, 114(17):1-5, 2015]
-set Ms [expr {1e6}]
-set A  [expr {1e-12}]
+set Ms [expr {1.0}]
+set A  [expr {1.0}]
 
 set XL [expr {3e-9}]
 set YL [expr {3e-9}]
@@ -43,10 +43,15 @@ Specify Oxs_CGEvolve {}
 # MinDriver
 Specify Oxs_MinDriver [subst {
   evolver Oxs_CGEvolve
-  stopping_mxHxm 0.1
+  stopping_mxHxm 1000
+  total_iteration_limit 1
   mesh :mesh
   Ms $Ms
-  m0 {0 0 1}
+  m0 { Oxs_ScriptVectorField {
+     atlas :atlas
+     script { init_m }
+     script_args { relpt }
+  }}
  
   basename test
   scalar_field_output_format {text %\#.15g}
@@ -58,3 +63,15 @@ Destination mags mmArchive
 
 Schedule DataTable table Stage 1
 Schedule Oxs_MinDriver::Magnetization mags Stage 1
+
+# -----------------------------------------------------------------------------
+
+proc init_m { x y z } {
+    if {$y <= 0.33} {
+        return [list 0 0 1]
+    } elseif {$y <= 0.66 && $y > 0.33} {
+        return [list 0 1 0]
+    } else {
+        return [list 1 0 0]
+    }
+}
