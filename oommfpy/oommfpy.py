@@ -122,7 +122,9 @@ class OOMMFData(object):
                                                     num_data)[0])
         # else read the next line after: Begin: Data with the coords and spins
         else:
-            first_num_data = _file.readline()[1:].split(' ')
+            first_num_data = _file.readline().decode()
+            # this should guess data is separated by any number of white spaces
+            first_num_data = first_num_data[1:].split()
 
         self.meshtype = re.search('(?<=meshtype: )[a-z]+', data).group(0)
 
