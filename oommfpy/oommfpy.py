@@ -95,19 +95,25 @@ class OOMMFData(object):
             if struct.unpack('>f', flag)[0] == 1234567.0:
                 # print(struct.unpack('>f', flag)[0])
                 self._dtype = '>f4'
+                self._dtype_st = '>f'
             elif struct.unpack('<f', flag)[0] == 1234567.0:
                 self._dtype = '<f4'
+                self._dtype_st = '<f'
             else:
-                raise Exception('Cannot get binary data dtype')
+                raise Exception('Cannot get binary 4 data dtype')
 
+        # In this case we could use _dtype = '>f8' or '<f8' but this does not
+        # with struct.unpack, which requires a double(?) >d or <d
         elif self.data_format == 'Binary 8':
             flag = _file.read(8)
             if struct.unpack('>d', flag)[0] == 123456789012345.0:
                 self._dtype = '>f8'
+                self._dtype_st = '>d'
             elif struct.unpack('<d', flag)[0] == 123456789012345.0:
                 self._dtype = '<f8'
+                self._dtype_st = '<d'
             else:
-                raise Exception('Cannot get binary data dtype')
+                raise Exception('Cannot get binary 8 data dtype')
 
         # Check mesh type to calculate the base positions ---------------------
 
@@ -117,9 +123,10 @@ class OOMMFData(object):
             for i in range(3):
                 # the data using the number of binary bits
                 num_data = _file.read(int(self.data_format[-1]))
-                # unpack using dtype without the num of bits
-                first_num_data.append(struct.unpack(self._dtype[:-1],
+                # Decode the data using the dtype without binary bits number(?)
+                first_num_data.append(struct.unpack(self._dtype_st,
                                                     num_data)[0])
+
         # else read the next line after: Begin: Data with the coords and spins
         else:
             first_num_data = _file.readline().decode()
