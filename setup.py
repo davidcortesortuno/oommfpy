@@ -16,5 +16,9 @@ setuptools.setup(
                       'numpy'],
     classifiers=['License :: BSD2 License',
                  'Programming Language :: Python :: 3 :: Only',
-                 ]
+                 ],
+    entry_points='''
+        [console_scripts]
+        plot_omf=oommfpy.plot:plot_omf
+    ''',
 )
