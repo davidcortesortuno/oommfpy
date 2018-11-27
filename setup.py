@@ -13,7 +13,10 @@ setuptools.setup(
     author_email='d.cortes@soton.ac.uk',
     packages=setuptools.find_packages(),
     install_requires=['matplotlib',
-                      'numpy'],
+                      'numpy',
+                      'click',
+                      'pyvtk'
+                      ],
     classifiers=['License :: BSD2 License',
                  'Programming Language :: Python :: 3 :: Only',
                  ],
