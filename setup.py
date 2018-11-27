@@ -20,5 +20,6 @@ setuptools.setup(
     entry_points='''
         [console_scripts]
         plot_omf=oommfpy.plot:plot_omf
+        omf2vtk=oommfpy.tools.omf2vtk:omf2vtk
     ''',
 )
