@@ -1,38 +1,6 @@
 import numpy as np
 import re
-import colorsys
 import struct
-
-
-# -----------------------------------------------------------------------------
-# Utilities to generate a HSL colourmap from the magnetisation field data
-
-def convert_to_RGB(hls_color):
-    return np.array(colorsys.hls_to_rgb(hls_color[0] / (2 * np.pi),
-                                        hls_color[1],
-                                        hls_color[2]))
-
-
-def generate_colours(field_data, colour_model='rgb'):
-    """
-    field_data      ::  (n, 3) array
-    """
-    hls = np.ones_like(field_data)
-    hls[:, 0] = np.arctan2(field_data[:, 1],
-                           field_data[:, 0]
-                           )
-    hls[:, 0][hls[:, 0] < 0] = hls[:, 0][hls[:, 0] < 0] + 2 * np.pi
-    hls[:, 1] = 0.5 * (field_data[:, 2] + 1)
-
-    if colour_model == 'rgb':
-        rgbs = np.apply_along_axis(convert_to_RGB, 1, hls)
-        return rgbs
-
-    elif colour_model == 'hls':
-        return hls
-
-    else:
-        raise Exception('Specify a valid colour model: rgb or hls')
 
 
 # -----------------------------------------------------------------------------
@@ -258,14 +226,14 @@ class OOMMFODTRead(object):
         # Read the third line which has the header names
         i = 0
         for i in range(4):
-            l = f.readline()
+            line = f.readline()
         f.close()
         # Remove the starting "# Columns:" string
-        l = l[11:]
+        line = line[11:]
 
         # Separate the header strings:
         # re.split('}\s{|\s\s\s\s|\s{|\sOxs', l)
-        header = re.findall(r'Oxs_[A-Za-z\s\:}]+(?=Oxs|{Oxs|\n)', l)
+        header = re.findall(r'Oxs_[A-Za-z\s\:}]+(?=Oxs|{Oxs|\n)', line)
         # Assign the name and column number
         self.columns = {}
         for i, h in enumerate(header):

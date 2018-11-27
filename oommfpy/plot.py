@@ -93,6 +93,15 @@ def plot_omf(input_omf_file, z=False):
                           ],
                   # aspect='auto'
                   )
+
+    # pq = ax.quiver(data.x[z_fltr],
+    #                data.y[z_fltr],
+    #                data.mx[z_fltr],
+    #                data.my[z_fltr],
+    #                scale_units='xy', scale=0.3,
+    #                color='k'
+    #                )
+
     ax.set_ylabel(r'$y$  (nm)')
     ax.set_xlabel(r'$x$  (nm)')
 
