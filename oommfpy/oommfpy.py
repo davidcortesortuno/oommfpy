@@ -159,7 +159,7 @@ class OOMMFData(object):
                     data = data[1:3 * n_spins + 1].reshape(-1, 3)
 
         else:
-            # NOTE: more efficient is to use Pandas csv reader but this 
+            # NOTE: more efficient is to use Pandas csv reader but this
             # requires adding an extra dependency to this code
             if self.meshtype == 'irregular':
                 data = np.loadtxt(self.input_file, usecols=[3, 4, 5])
@@ -204,45 +204,9 @@ class OOMMFData(object):
         self.ys = np.unique(self.y)
         self.zs = np.unique(self.z)
 
-    def _index_2D(self, i, j):
-        """
-        Returns the index for the cell with ordinals i, j
-        or -1 if that cell would be out of bounds.
+    # -------------------------------------------------------------------------
 
-        """
-        if i < 0 or j < 0 or j >= self.ny or i >= self.nx:
-            return -1
-
-        return j * self.nx + i
-
-    def generate_ngbs(self):
-        """
-        For every mesh site, store the indexes of its 4 neighbours (in a 2D
-        slice) in the order: -x, +x, -y, +y
-        This function generates an array with N*4 elements.
-        """
-        nx, ny = self.nx, self.ny
-        ngbs = np.zeros((nx * ny, 4), dtype=np.int32)
-
-        for j in range(ny):
-            for i in range(nx):
-                ngbs[i + j * nx] = [self._index_2D(i - 1, j),  # -x
-                                    self._index_2D(i + 1, j),  # +x
-                                    self._index_2D(i, j - 1),  # -y
-                                    self._index_2D(i, j + 1)   # +y
-                                    ]
-
-        self.neighbours = ngbs
-
-    def get_spin(self, i, j):
-        """
-        Get spin components from the mesh grid given the i,j mesh grid indexes
-        """
-        if i < 0 or j < 0 or j >= self.ny or i >= self.nx:
-            return np.zeros(3)
-        return self.spin_grid[i, j]
-
-    def compute_sk_number(self, z_index=0):
+    def compute_sk_number(self, index=0, plane='xy'):
         """
 
         Compute the skyrmion number S, defined as:
@@ -252,10 +216,10 @@ class OOMMFData(object):
                     4 PI   _ /         dx     dy
 
         for a two dimensional layer. To do this, we convert the self.m array
-        with the magnetization, into a (nx, ny, 3) matrix (a grid), using a
-        2D slice of the mesh. The slice (for now) lies in the XY plane and
-        is specified with the z_index integer. For example, z_index=0 means
-        a slice at the z=self.zs[0] coordinate
+        with the magnetization, into a (nx, ny, 3) matrix (a grid), using a 2D
+        slice of the mesh. The slice lies in the specified plane and an index
+        integer. For example, plane='xy' and index=0 means a slice at the
+        z=self.zs[0] coordinate
 
         A finite differences discretisation of the continuum magnetisation
         field, using central differences, and a simple midpoint rule
@@ -266,12 +230,26 @@ class OOMMFData(object):
                 - M_i \cdot ( M_{i-1} \times M_{j+1} )
                 - M_i \cdot ( M_{i+1} \times M_{j-1} )
                 ) / (16 * PI)
+
+        Parameters
+
+        plane       :: 'xy', 'xz' or 'yz'
+        index       :: any integer from 0 up to len(xs) or len(ys) or len(zs)
+                       depending on the slice plane
+
         """
 
         # Spin data in a grid, dimensions are: z, y, x, 3
         spin_grid = self.m.reshape(-1, self.ny, self.nx, 3)
-        # Get the specified slice along the z dimension
-        spin_grid = spin_grid[z_index]
+        # Get the specified slice along the specified dimension
+        if plane == 'xy':
+            spin_grid = spin_grid[index, :, :, :]
+        elif plane == 'xz':
+            spin_grid = spin_grid[:, index, :, :]
+        elif plane == 'yz':
+            spin_grid = spin_grid[:, :, index, :]
+        else:
+            raise Exception('Specify a valid plane')
 
         # 2nd argument are how many zeroes (before,after) we pad in each axis
         # (we keep 3-spin-components, so we don't pad anything at axis=2)
