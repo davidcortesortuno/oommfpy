@@ -304,7 +304,7 @@ class OOMMFData(object):
 # -----------------------------------------------------------------------------
 
 
-class OOMMFODTRead(object):
+class OOMMFODTReader(object):
 
     """
     Class to read an ODT file from an OOMMF simulation output
