@@ -159,6 +159,8 @@ class OOMMFData(object):
                     data = data[1:3 * n_spins + 1].reshape(-1, 3)
 
         else:
+            # NOTE: more efficient is to use Pandas csv reader but this 
+            # requires adding an extra dependency to this code
             if self.meshtype == 'irregular':
                 data = np.loadtxt(self.input_file, usecols=[3, 4, 5])
             elif self.meshtype == 'rectangular':
