@@ -19,7 +19,7 @@ class OOMMFData(object):
 
     def read_header(self):
         """
-        Read header from file
+        Read header from file and store values in self. variables
         """
 
         # Generate a single string with the whole header up to the line where
@@ -177,6 +177,11 @@ class OOMMFData(object):
         self.mz[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
 
     def set_coordinates(self):
+        """
+        Create the self.x, self.y, self.z arrays with the coordinates of the
+        mesh sites. Unique values of the coordinates are stored in the
+        correpsonding xs, yz, zs arrays
+        """
         xs, ys, zs = (np.arange(float(self.nx)),
                       np.arange(float(self.ny)),
                       np.arange(float(self.nz))
