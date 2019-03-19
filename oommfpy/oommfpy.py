@@ -226,7 +226,12 @@ class OOMMFData(object):
         integer. For example, plane='xy' and index=0 means a slice at the
         z=self.zs[0] coordinate
 
-        A finite differences discretisation of the continuum magnetisation
+        This functio creates a self.sk_number array with the sk number density
+        per mesh site and returns the total sum
+
+        Calculation:
+
+        A finite difference discretisation of the continuum magnetisation
         field, using central differences, and a simple midpoint rule
         for the 2D integration leads to:
 
@@ -267,19 +272,20 @@ class OOMMFData(object):
         # Here we vectorise the cross products using the padded matrix to
         # obtain neighbours (which are zero spin components) at the boundary of
         # the sample
-        sk_number = (np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
-                              spin_pad[1:-1, 2:, :],   # s(i,j+1)
-                              axis=2) +
-                     np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
-                              spin_pad[1:-1, :-2, :],  # s(i,j-1)
-                              axis=2) -
-                     np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
-                              spin_pad[1:-1, 2:, :],   # s(i,j+1)
-                              axis=2) -
-                     np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
-                              spin_pad[1:-1, :-2, :],  # s(i,j-1)
-                              axis=2)
-                     )
+        # We obtain a grid with the sk number density
+        self.sk_number = (np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
+                                   spin_pad[1:-1, 2:, :],   # s(i,j+1)
+                                   axis=2) +
+                          np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
+                                   spin_pad[1:-1, :-2, :],  # s(i,j-1)
+                                   axis=2) -
+                          np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
+                                   spin_pad[1:-1, 2:, :],   # s(i,j+1)
+                                   axis=2) -
+                          np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
+                                   spin_pad[1:-1, :-2, :],  # s(i,j-1)
+                                   axis=2)
+                          )
 
         # The dot product of every site with the cross product between
         # their neighbours that was already computed above
@@ -287,12 +293,12 @@ class OOMMFData(object):
 
         # self.sk_number = -np.sum(self.spin_grid * self.sk_number,
         #                          axis=2) / (16 * np.pi)
-        sk_number = -np.einsum('ijk,ijk->ij',
-                               spin_grid,
-                               sk_number) / (16 * np.pi)
+        self.sk_number = -np.einsum('ijk,ijk->ij',
+                                    spin_grid,
+                                    self.sk_number) / (16 * np.pi)
 
         # Total sk number (integral)
-        return np.sum(sk_number.flatten())
+        return np.sum(self.sk_number.flatten())
 
 
 # -----------------------------------------------------------------------------
