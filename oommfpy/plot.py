@@ -10,8 +10,10 @@ from matplotlib import rcParams
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 # rcParams.update({'figure.autolayout': True})
 
+
 # -----------------------------------------------------------------------------
 # Utilities to generate a HSL colourmap from the magnetisation field data
+
 
 def convert_to_RGB(hls_color):
     return np.array(colorsys.hls_to_rgb(hls_color[0] / (2 * np.pi),
