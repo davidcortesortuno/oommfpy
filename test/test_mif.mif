@@ -5,7 +5,7 @@ set PI [expr {4 * atan(1.)}]
 set MU0 [expr {4 * $PI * 1e-7}]
 
 # PdFe on Ir(111) [PRL, 114(17):1-5, 2015]
-set Ms [expr {1.0}]
+set Ms [expr {8.0}]
 set A  [expr {1.0}]
 
 set XL [expr {3e-9}]

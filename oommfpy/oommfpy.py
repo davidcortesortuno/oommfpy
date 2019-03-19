@@ -166,9 +166,12 @@ class OOMMFData(object):
             elif self.meshtype == 'rectangular':
                 data = np.loadtxt(self.input_file)
 
-        self.Ms = np.sqrt(np.sum(data ** 2, axis=1))
+        self.m = data
+        self.Ms = np.sqrt(np.sum(self.m ** 2, axis=1))
         self.Ms[self.Ms == 0.0] = 0.0
-        self.mx, self.my, self.mz = (data[:, 0], data[:, 1], data[:, 2])
+        self.mx, self.my, self.mz = (self.m[:, 0],
+                                     self.m[:, 1],
+                                     self.m[:, 2])
         self.mx[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
         self.my[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
         self.mz[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
@@ -200,6 +203,113 @@ class OOMMFData(object):
         self.xs = np.unique(self.x)
         self.ys = np.unique(self.y)
         self.zs = np.unique(self.z)
+
+    def _index_2D(self, i, j):
+        """
+        Returns the index for the cell with ordinals i, j
+        or -1 if that cell would be out of bounds.
+
+        """
+        if i < 0 or j < 0 or j >= self.ny or i >= self.nx:
+            return -1
+
+        return j * self.nx + i
+
+    def generate_ngbs(self):
+        """
+        For every mesh site, store the indexes of its 4 neighbours (in a 2D
+        slice) in the order: -x, +x, -y, +y
+        This function generates an array with N*4 elements.
+        """
+        nx, ny = self.nx, self.ny
+        ngbs = np.zeros((nx * ny, 4), dtype=np.int32)
+
+        for j in range(ny):
+            for i in range(nx):
+                ngbs[i + j * nx] = [self._index_2D(i - 1, j),  # -x
+                                    self._index_2D(i + 1, j),  # +x
+                                    self._index_2D(i, j - 1),  # -y
+                                    self._index_2D(i, j + 1)   # +y
+                                    ]
+
+        self.neighbours = ngbs
+
+    def get_spin(self, i, j):
+        """
+        Get spin components from the mesh grid given the i,j mesh grid indexes
+        """
+        if i < 0 or j < 0 or j >= self.ny or i >= self.nx:
+            return np.zeros(3)
+        return self.spin_grid[i, j]
+
+    def compute_sk_number(self, z_index=0):
+        """
+
+        Compute the skyrmion number S, defined as:
+                                _
+                     1         /       dm     dm
+             S   =  ---  *    /   m .  --  X  --   dx dy
+                    4 PI   _ /         dx     dy
+
+        for a two dimensional layer. To do this, we convert the self.m array
+        with the magnetization, into a (nx, ny, 3) matrix (a grid), using a
+        2D slice of the mesh. The slice (for now) lies in the XY plane and
+        is specified with the z_index integer. For example, z_index=0 means
+        a slice at the z=self.zs[0] coordinate
+
+        A finite differences discretisation of the continuum magnetisation
+        field, using central differences, and a simple midpoint rule
+        for the 2D integration leads to:
+
+        S =   -(  M_i \cdot ( M_{i+1} \times M_{j+1} )
+                + M_i \cdot ( M_{i-1} \times M_{j-1} )
+                - M_i \cdot ( M_{i-1} \times M_{j+1} )
+                - M_i \cdot ( M_{i+1} \times M_{j-1} )
+                ) / (16 * PI)
+        """
+
+        # Spin data in a grid, dimensions are: z, y, x, 3
+        spin_grid = self.m.reshape(-1, self.ny, self.nx, 3)
+        # Get the specified slice along the z dimension
+        spin_grid = spin_grid[z_index]
+
+        # 2nd argument are how many zeroes (before,after) we pad in each axis
+        # (we keep 3-spin-components, so we don't pad anything at axis=2)
+        spin_pad = np.pad(spin_grid, ((1, 1), (1, 1), (0, 0)),
+                          mode='constant', constant_values=0.0)
+        # Same as doing:
+        # spin_pad = np.zeros((nx +2, ny + 2, 3))
+        # spin_pad[1:-1, 1:-1, :] = spin_grid
+
+        # Here we vectorise the cross products using the padded matrix to
+        # obtain neighbours (which are zero spin components) at the boundary of
+        # the sample
+        self.sk_number = (np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
+                                   spin_pad[1:-1, 2:, :],   # s(i,j+1)
+                                   axis=2) +
+                          np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
+                                   spin_pad[1:-1, :-2, :],  # s(i,j-1)
+                                   axis=2) -
+                          np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
+                                   spin_pad[1:-1, 2:, :],   # s(i,j+1)
+                                   axis=2) -
+                          np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
+                                   spin_pad[1:-1, :-2, :],  # s(i,j-1)
+                                   axis=2)
+                          )
+
+        # The dot product of every site with the cross product between
+        # their neighbours that was already computed above
+        # We save this quantity to the self.sk_number method
+
+        # self.sk_number = -np.sum(self.spin_grid * self.sk_number,
+        #                          axis=2) / (16 * np.pi)
+        self.sk_number = -np.einsum('ijk,ijk->ij',
+                                    self.spin_grid,
+                                    self.sk_number) / (16 * np.pi)
+
+        # Total sk number (integral)
+        return np.sum(self.sk_number.flatten())
 
 
 # -----------------------------------------------------------------------------
