@@ -47,7 +47,16 @@ def get_n(f):
 def test_sk_number_vs_mesh_discretisation():
     """
     Compute the sk number at the bottom of a disk with a skyrmion
-    (the function computes the sk number in the xy plane)
+    (the function computes the sk number in the xy plane). The system has a
+    DMI with Cnv symmetry (interfacial)
+
+    The test repeats the calculation for samples with increasing mesh
+    resolutions (smaller mesh spacings) and prints the result for every mesh
+    discretisation. Sk number values should converge to 1 for finer meshes
+
+    Samples with different mesh sizes are computed through the
+    isolated_sk_DMI_Cnv.mif OOMMF script and are called from the
+    generate_omfs() function
     """
 
     generate_omfs()
