@@ -15,11 +15,27 @@ A `setup.py` file is provided to install this library using `pip`
 If successful, the `plot_omf` and `omf2vtk` tools are installed in the
 corresponding `bin` directory and can be called from the command line.
 
+## Documentation
+
+For now check the `doc/ipynb` folder which contains a tutorial with basic
+functionality
+
+Scripts to convert `omf` to VTK can be called directly as, for example,
+
+```
+    omf2vtk omf2vtk -i omfs/my_oommf_output.omf -o test.vtk
+```
+
+Similarly with the `plot_omf` function.
+
 ## TODO
 
-- [ ] Multiple tests
+- [ ] More tests
+- [ ] More documentation
 - [ ] More options to plotting library
 - [ ] Point data at cell centres of VTK file
+- [ ] Print `z` coordinate when computing sk number
+- [ ] Allow Periodic boundaries
 
 # Citation
 
