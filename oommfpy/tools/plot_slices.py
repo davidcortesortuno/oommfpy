@@ -1,4 +1,4 @@
-from . import OOMMFData
+from .. import OOMMFData
 from . import plot_tools
 import numpy as np
 import click
