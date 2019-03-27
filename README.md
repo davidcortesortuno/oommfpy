@@ -23,7 +23,7 @@ functionality
 Scripts to convert `omf` to VTK can be called directly as, for example,
 
 ```
-    omf2vtk omf2vtk -i omfs/my_oommf_output.omf -o test.vtk
+omf2vtk -i omfs/my_oommf_output.omf -o test.vtk
 ```
 
 Similarly with the `plot_omf` function.
