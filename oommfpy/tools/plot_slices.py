@@ -1,56 +1,24 @@
 from . import OOMMFData
-import colorsys
+from . import plot_tools
 import numpy as np
 import click
 import scipy.spatial as ss
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-import matplotlib
-from matplotlib import rcParams
+# import matplotlib
+# from matplotlib import rcParams
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 # rcParams.update({'figure.autolayout': True})
 
 
 # -----------------------------------------------------------------------------
-# Utilities to generate a HSL colourmap from the magnetisation field data
 
 
-def convert_to_RGB(hls_color):
-    return np.array(colorsys.hls_to_rgb(hls_color[0] / (2 * np.pi),
-                                        hls_color[1],
-                                        hls_color[2]))
-
-
-def generate_colours(field_data, colour_model='rgb'):
+def plot_omf_slices(input_omf_file, z=False, quiver=False):
     """
-    field_data      ::  (n, 3) array
+    Generates an interactive visualisation of the system by showing slices
+    in the xy-plane with varying z coordinate
     """
-    hls = np.ones_like(field_data)
-    hls[:, 0] = np.arctan2(field_data[:, 1],
-                           field_data[:, 0]
-                           )
-    hls[:, 0][hls[:, 0] < 0] = hls[:, 0][hls[:, 0] < 0] + 2 * np.pi
-    hls[:, 1] = 0.5 * (field_data[:, 2] + 1)
-
-    if colour_model == 'rgb':
-        rgbs = np.apply_along_axis(convert_to_RGB, 1, hls)
-        return rgbs
-
-    elif colour_model == 'hls':
-        return hls
-
-    else:
-        raise Exception('Specify a valid colour model: rgb or hls')
-
-
-# -----------------------------------------------------------------------------
-
-
-@click.command()
-@click.option('-i', '--input_omf_file', type=str,
-              help='Path to OMF file', required=True)
-@click.option('--z', type=float, help='z coordinate')
-def plot_omf(input_omf_file, z=False):
     data = OOMMFData(input_omf_file)
     data.read_m()
     data.set_coordinates()
@@ -76,12 +44,6 @@ def plot_omf(input_omf_file, z=False):
                 data.my[z_fltr] ** 2 +
                 data.mz[z_fltr] ** 2) < 1e-6
                )
-    # ax.scatter(data.x[z_fltr][Ms_fltr],
-    #            data.y[z_fltr][Ms_fltr],
-    #            c=data.mz[z_fltr][Ms_fltr],
-    #            cmap='RdYlBu', vmin=-1, vmax=1,
-    #            marker='s'
-    #            )
     mz_data = data.mz[z_fltr]
     mz_data[Ms_fltr] = np.nan
     mz_data.shape = (-1, len(data.xs))
@@ -155,3 +117,21 @@ def plot_omf(input_omf_file, z=False):
 
     plt.tight_layout()
     plt.show()
+
+
+# -----------------------------------------------------------------------------
+# CLI functions
+
+@click.command()
+@click.option('-i', '--input_omf_file', type=str,
+              help='Path to OMF file', required=True)
+@click.option('--z', type=float, help='z coordinate')
+def plot_omf_slices_cli(input_omf_file, z):
+    plot_omf_slices(input_omf_file, z=z)
+
+
+# -----------------------------------------------------------------------------
+
+
+if __name__ == '__main__':
+    plot_omf_slices_cli()
