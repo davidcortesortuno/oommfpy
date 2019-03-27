@@ -38,7 +38,7 @@ def test_all_formats():
 
         data = oommfpy.OOMMFData(omf_file)
         # print(data.data_format)
-        data.read_m()
+        data.generate_m()
 
         # Numpy assertion
         np.testing.assert_array_equal(data.mx, spins_ref[:, 0])

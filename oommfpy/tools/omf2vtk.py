@@ -16,8 +16,8 @@ def omf2vtk(input_omf_file,
     """
 
     data = OOMMFData(input_omf_file)
-    data.read_m()
-    data.set_coordinates()
+    data.generate_m()
+    data.generate_coordinates()
 
     grid = (np.linspace(data.xmin * 1e9, data.xmax * 1e9, data.nx + 1),
             np.linspace(data.ymin * 1e9, data.ymax * 1e9, data.ny + 1),

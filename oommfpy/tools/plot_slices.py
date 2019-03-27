@@ -20,8 +20,8 @@ def plot_omf_slices(input_omf_file, z=False, quiver=False):
     in the xy-plane with varying z coordinate
     """
     data = OOMMFData(input_omf_file)
-    data.read_m()
-    data.set_coordinates()
+    data.generate_m()
+    data.generate_coordinates()
 
     if not z:
         z = data.zs.min()

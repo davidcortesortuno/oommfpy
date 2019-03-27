@@ -114,7 +114,7 @@ class OOMMFData(object):
 
         _file.close()
 
-    def read_m(self):
+    def generate_m(self):
         """
         Read the magnetisation data
 
@@ -176,7 +176,7 @@ class OOMMFData(object):
         self.my[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
         self.mz[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
 
-    def set_coordinates(self):
+    def generate_coordinates(self):
         """
         Create the self.x, self.y, self.z arrays with the coordinates of the
         mesh sites. Unique values of the coordinates are stored in the
