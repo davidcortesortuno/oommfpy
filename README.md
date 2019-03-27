@@ -9,7 +9,7 @@ magnetisation files `omf`. In addition to this library we provide tools to plot
 Highlights:
 
 - Read `omf` files in any format
-- Painless convertion of the data in an `omf` file into Numpy arrays for data
+- Painless conversion of the data in an `omf` file into Numpy arrays for data
   analysis
 - Fast calculation (using Numpy) of the skyrmion number in a slice of the
   system in any plane orientation (`xy`, `xz`, `yz`)
