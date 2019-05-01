@@ -1,2 +1,3 @@
-from .oommfpy import OOMMFData
+from .oommfpy import FieldData
+from .oommfpy import MagnetisationData
 from .oommfpy import OOMMFODTReader

@@ -244,7 +244,7 @@ class MagnetisationData(FieldData):
 
     def __init__(self, input_file):
 
-        super(MagnetisationData, self).setup(input_file)
+        super(MagnetisationData, self).__init__(input_file)
 
     def generate_field(self):
         """
