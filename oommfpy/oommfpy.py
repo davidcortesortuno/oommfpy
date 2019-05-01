@@ -38,10 +38,26 @@ class FieldData(object):
                  # 'xbase': 'xbase',  'ybase': 'ybase', 'zbase': 'zbase',
                  'xmin': 'xmin', 'ymin': 'ymin', 'zmin': 'zmin',
                  'xmax': 'xmax', 'ymax': 'ymax', 'zmax': 'zmax',
+                 'valuedim': 'valuedim'
                  }
 
         # Regex search the attributes. Stepsizes are specified as dx, dy, dz
         for k in attrs.keys():
+
+            # Only OVF 2.0 file format allows arbitrary number of dimensions
+            # of the field data. Otherwise just set it to default 3
+            if k == 'valuedim':
+                num_val = int(re.search('(?<={}: )[0-9\-\.e]+'.format(k),
+                              data).group(0))
+                if num_val:
+                    setattr(self, attrs[k], num_val)
+                else:
+                    setattr(self, attrs[k], 3)
+
+                continue
+
+            # .................................................................
+
             num_val = float(re.search('(?<={}: )[0-9\-\.e]+'.format(k),
                             data).group(0))
             setattr(self, attrs[k], num_val)
@@ -151,11 +167,13 @@ class FieldData(object):
                 # decoding of numpy transforms this comment in non-sense numbers)
                 # Finally reshape to have columns: fx fy fz
                 if self.meshtype == 'irregular':
-                    data = data[1:6 * n_sites + 1].reshape(-1, 6)
-                    # only get the last 3 cols with field data
+                    # Number of dimensions of data: coordinates + field
+                    field_dim = 3 + self.valuedim
+                    data = data[1:field_dim * n_sites + 1].reshape(-1, field_dim)
+                    # only get the last cols with field data (non coordinates)
                     data = data[:, 3:]
                 elif self.meshtype == 'rectangular':
-                    data = data[1:3 * n_sites + 1].reshape(-1, 3)
+                    data = data[1:self.valuedim * n_sites + 1].reshape(-1, 3)
 
         else:
             # NOTE: more efficient is to use Pandas csv reader but this
