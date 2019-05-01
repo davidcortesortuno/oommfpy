@@ -6,7 +6,7 @@ import struct
 # -----------------------------------------------------------------------------
 
 
-class OOMMFData(object):
+class FieldData(object):
     """
     Class to extract the field data from an OOMMF file (omf, ohf, ehf) with
     a regular mesh grid (coordinates are generated in this class)
@@ -114,17 +114,11 @@ class OOMMFData(object):
 
         _file.close()
 
-    def generate_field(self, normalise_field=True):
+    def _generate_data(self):
         """
-        Read the field data: any scalar or vector field assuming the data from
-                             the field is always Nx3 in size
-
         If the data is in binary format, we decode the information using
         Numpy's `fromfile` function. Otherwise just load the text file
         with Numpy's `loadtxt`
-
-        normalise_field     :: If True, the self.nfield variables are created
-                               with the normalised field per mesh site
 
         """
 
@@ -171,7 +165,17 @@ class OOMMFData(object):
             elif self.meshtype == 'rectangular':
                 data = np.loadtxt(self.input_file)
 
-        self.field = data
+        return data
+
+    def generate_field(self, normalise_field=False):
+        """
+        Read the field data: any scalar or vector field assuming the data from
+                             the field is always Nx3 in size
+
+        normalise_field     :: Creates the self.nfield variable with the field
+                               normalised per mesh site
+        """
+        self.field = self._generate_data()
         self.field_norm = np.sqrt(np.sum(self.field ** 2, axis=1))
         self.field_norm[self.field_norm == 0.0] = 0.0
         self.field_x, self.field_y, self.field_z = (self.field[:, 0],
@@ -185,9 +189,9 @@ class OOMMFData(object):
             self.nfield_z = self.nfield[:, 2]
 
             _filter = self.field_norm != 0.0
-            self.nfield_x_n[_filter] /= self.field_norm[_filter]
-            self.nfield_y_n[_filter] /= self.field_norm[_filter]
-            self.nfield_z_n[_filter] /= self.field_norm[_filter]
+            self.nfield_x[_filter] /= self.field_norm[_filter]
+            self.nfield_y[_filter] /= self.field_norm[_filter]
+            self.nfield_z[_filter] /= self.field_norm[_filter]
 
     def generate_coordinates(self):
         """
@@ -224,12 +228,44 @@ class OOMMFData(object):
 
     # -------------------------------------------------------------------------
 
+
+# -----------------------------------------------------------------------------
+
+
+class MagnetisationData(FieldData):
+    """
+    Class to extract the magnetisation data from an OOMMF omf file with
+    a regular mesh grid (coordinates are generated in this class). The
+    magnetisation field is normalised when the self.generate_field() method
+    is used
+
+    This class includes a method to compute the skyrmion number
+    """
+
+    def __init__(self, input_file):
+
+        super(MagnetisationData, self).setup(input_file)
+
+    def generate_field(self):
+        """
+        Compute the magnetisation field data from the given input file
+        """
+        self.field = self._generate_data()
+        self.field_norm = np.sqrt(np.sum(self.field ** 2, axis=1))
+        self.field_norm[self.field_norm == 0.0] = 0.0
+        self.field_x, self.field_y, self.field_z = (self.field[:, 0],
+                                                    self.field[:, 1],
+                                                    self.field[:, 2])
+
+        _filter = self.field_norm != 0.0
+        self.field_x[_filter] /= self.field_norm[_filter]
+        self.field_y[_filter] /= self.field_norm[_filter]
+        self.field_z[_filter] /= self.field_norm[_filter]
+
     def compute_sk_number(self, index=0, plane='xy'):
         """
 
-        Assuming that the file being read contains the magnetisation field,
-        this method uses the normalised magnetisation (in self.nfield) to
-        compute the skyrmion number S, defined as:
+        Compute the skyrmion number S, defined as:
                                 _
                      1         /       dm     dm
              S   =  ---  *    /   m .  --  X  --   dx dy
@@ -265,8 +301,7 @@ class OOMMFData(object):
         """
 
         # Spin data in a grid, dimensions are: z, y, x, 3
-        m = self.nfield
-        spin_grid = m.reshape(-1, self.ny, self.nx, 3)
+        spin_grid = self.field.reshape(-1, self.ny, self.nx, 3)
         # Get the specified slice along the specified dimension
         if plane == 'xy':
             spin_grid = spin_grid[index, :, :, :]
@@ -315,7 +350,6 @@ class OOMMFData(object):
 
         # Total sk number (integral)
         return np.sum(self.sk_number.flatten())
-
 
 # -----------------------------------------------------------------------------
 

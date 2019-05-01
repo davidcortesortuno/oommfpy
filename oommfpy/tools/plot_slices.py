@@ -1,4 +1,4 @@
-from .. import OOMMFData
+from .. import MagnetisationData
 from . import plot_tools
 import numpy as np
 import click
@@ -19,8 +19,8 @@ def plot_omf_slices(input_omf_file, z=False, quiver=False):
     Generates an interactive visualisation of the system by showing slices
     in the xy-plane with varying z coordinate
     """
-    data = OOMMFData(input_omf_file)
-    data.generate_field(normalise_field=True)
+    data = MagnetisationData(input_omf_file)
+    data.generate_field()
     data.generate_coordinates()
 
     if not z:
@@ -40,11 +40,11 @@ def plot_omf_slices(input_omf_file, z=False, quiver=False):
     # Filters to plot a slice perp to the z direction
     z_fltr = data.z == z_data
     # Filter to remove points with nzero magnetisation
-    Ms_fltr = ((data.nfield_x[z_fltr] ** 2 +
-                data.nfield_y[z_fltr] ** 2 +
-                data.nfield_z[z_fltr] ** 2) < 1e-6
+    Ms_fltr = ((data.field_x[z_fltr] ** 2 +
+                data.field_y[z_fltr] ** 2 +
+                data.field_z[z_fltr] ** 2) < 1e-6
                )
-    mz_data = data.nfield_z[z_fltr]
+    mz_data = data.field_z[z_fltr]
     mz_data[Ms_fltr] = np.nan
     mz_data.shape = (-1, len(data.xs))
     # Plot as an image with pixels coloured by mz
@@ -99,11 +99,11 @@ def plot_omf_slices(input_omf_file, z=False, quiver=False):
     def update(z_val):
         z_data = data.zs[z_tree.query([z_val])[1]]
         z_fltr = data.z == z_data
-        Ms_fltr = ((data.nfield_x[z_fltr] ** 2 +
-                    data.nfield_y[z_fltr] ** 2 +
-                    data.nfield_z[z_fltr] ** 2) < 1e-6
+        Ms_fltr = ((data.field_x[z_fltr] ** 2 +
+                    data.field_y[z_fltr] ** 2 +
+                    data.field_z[z_fltr] ** 2) < 1e-6
                    )
-        mz_data = data.nfield_z[z_fltr]
+        mz_data = data.field_z[z_fltr]
         mz_data[Ms_fltr] = np.nan
         mz_data.shape = (-1, len(data.xs))
         # Update the plot:

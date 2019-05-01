@@ -1,4 +1,4 @@
-from .. import OOMMFData
+from .. import MagnetisationData
 from . import plot_tools
 import numpy as np
 import click
@@ -30,15 +30,15 @@ def plot_omf(omf_file,
     cbar_offsets    :: offset x-y positions for the colorbar (hls only)
     """
 
-    data = OOMMFData(omf_file)
-    data.generate_field(normalise_field=True)
+    data = MagnetisationData(omf_file)
+    data.generate_field()
     data.generate_coordinates()
 
     f = plt.figure()
     ax = f.add_subplot(111)
 
     if cmap == 'hls':
-        spin_data = plot_tools.generate_colours(data.nfield[:, :])
+        spin_data = plot_tools.generate_colours(data.field[:, :])
         spin_data[data.field_norm < 1e-10] = [1., 1., 1.]
         spin_data = spin_data.reshape(-1, data.nx, 3)
 
@@ -129,8 +129,8 @@ def plot_charge_density(omf_file, savefig=None, dpi=150,
     Plot the sk number density
     """
 
-    data = OOMMFData(omf_file)
-    data.generate_field(normalise_field=True)
+    data = MagnetisationData(omf_file)
+    data.generate_field()
     data.generate_coordinates()
     data.compute_sk_number(plane=plane, index=index)
 

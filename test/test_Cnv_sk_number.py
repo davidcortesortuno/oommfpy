@@ -69,8 +69,8 @@ def test_sk_number_vs_mesh_discretisation():
 
     for FILE in _files:
         n = get_n(FILE)
-        oommf_data = op.OOMMFData(FILE)
-        oommf_data.generate_m()
+        oommf_data = op.MagnetisationData(FILE)
+        oommf_data.generate_field()
         print('dx = {:.2f} nm --> Q = {}'.format(
             mesh_length / n,
             oommf_data.compute_sk_number(plane='xy', index=0))

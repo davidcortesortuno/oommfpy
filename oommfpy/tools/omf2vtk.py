@@ -1,4 +1,4 @@
-from .. import OOMMFData
+from .. import MagnetisationData
 import numpy as np
 import pyvtk
 import click
@@ -15,8 +15,8 @@ def omf2vtk(input_omf_file,
     Magnetisation (direction and magnitude) values are stored as cell values
     """
 
-    data = OOMMFData(input_omf_file)
-    data.generate_field(normalise_field=True)
+    data = MagnetisationData(input_omf_file)
+    data.generate_field()
     data.generate_coordinates()
 
     grid = (np.linspace(data.xmin * 1e9, data.xmax * 1e9, data.nx + 1),
@@ -27,9 +27,9 @@ def omf2vtk(input_omf_file,
     vtk_data = pyvtk.VtkData(structure, "")
 
     # Save the magnetisation
-    vtk_data.cell_data.append(pyvtk.Vectors(np.column_stack((data.nfield_x,
-                                                             data.nfield_y,
-                                                             data.nfield_z)),
+    vtk_data.cell_data.append(pyvtk.Vectors(np.column_stack((data.field_x,
+                                                             data.field_y,
+                                                             data.field_z)),
                               "m"))
 
     # Save Ms as scalar field
