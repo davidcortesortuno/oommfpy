@@ -31,15 +31,15 @@ def plot_omf(omf_file,
     """
 
     data = OOMMFData(omf_file)
-    data.generate_m()
+    data.generate_field(normalise_field=True)
     data.generate_coordinates()
 
     f = plt.figure()
     ax = f.add_subplot(111)
 
     if cmap == 'hls':
-        spin_data = plot_tools.generate_colours(data.m[:, :])
-        spin_data[data.Ms < 1e-10] = [1., 1., 1.]
+        spin_data = plot_tools.generate_colours(data.nfield[:, :])
+        spin_data[data.field_norm < 1e-10] = [1., 1., 1.]
         spin_data = spin_data.reshape(-1, data.nx, 3)
 
         p = ax.imshow(spin_data, origin='lower', interpolation='None',
@@ -130,7 +130,7 @@ def plot_charge_density(omf_file, savefig=None, dpi=150,
     """
 
     data = OOMMFData(omf_file)
-    data.generate_m()
+    data.generate_field(normalise_field=True)
     data.generate_coordinates()
     data.compute_sk_number(plane=plane, index=index)
 
@@ -139,7 +139,7 @@ def plot_charge_density(omf_file, savefig=None, dpi=150,
     charge = data.sk_number
     vmax = np.max(np.abs(charge))
 
-    charge.reshape(-1,)[data.Ms < 1e-10] = np.nan
+    charge.reshape(-1,)[data.field_norm < 1e-10] = np.nan
 
     plt.imshow(charge, origin='lower', cmap='RdYlBu', interpolation='None',
                vmin=-vmax, vmax=vmax,

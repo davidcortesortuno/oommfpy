@@ -8,7 +8,7 @@ import struct
 
 class OOMMFData(object):
     """
-    Class to extract the magnetisation field data from an OOMMF file with
+    Class to extract the field data from an OOMMF file (omf, ohf, ehf) with
     a regular mesh grid (coordinates are generated in this class)
     """
 
@@ -71,7 +71,7 @@ class OOMMFData(object):
                 raise Exception('Cannot get binary 4 data dtype')
 
         # In this case we could use _dtype = '>f8' or '<f8' but this does not
-        # with struct.unpack, which requires a double(?) >d or <d
+        # work with struct.unpack, which requires a double(?) >d or <d
         elif self.data_format == 'Binary 8':
             flag = _file.read(8)
             if struct.unpack('>d', flag)[0] == 123456789012345.0:
@@ -114,13 +114,18 @@ class OOMMFData(object):
 
         _file.close()
 
-    def generate_m(self):
+    def generate_field(self, normalise_field=True):
         """
-        Read the magnetisation data
+        Read the field data: any scalar or vector field assuming the data from
+                             the field is always Nx3 in size
 
         If the data is in binary format, we decode the information using
-        the Numpy's fromfile function. Otherwise just load the text file
-        with Numpy's loadtxt
+        Numpy's `fromfile` function. Otherwise just load the text file
+        with Numpy's `loadtxt`
+
+        normalise_field     :: If True, the self.nfield variables are created
+                               with the normalised field per mesh site
+
         """
 
         if self.data_format == 'Binary 4' or self.data_format == 'Binary 8':
@@ -143,20 +148,20 @@ class OOMMFData(object):
                 # it is the first element read in the data variable, which
                 # which depends on the binary type
                 endianflag = data[0]
-                # Count the total number of spins, this is the total number
-                # of magnetisation elements read in the binary file
-                # We are assuming we only have spin data: mx, my, mz per line
-                n_spins = self.nx * self.ny * self.nz
+                # Count the total number of mesh sites, this is the total
+                # number of field elements read in the binary file
+                # We are assuming we only have field data: fx, fy, fz per line
+                n_sites = self.nx * self.ny * self.nz
                 # Discard the first element (flag) and discard the final data,
                 # which is the final comment ending the data file (the binary
                 # decoding of numpy transforms this comment in non-sense numbers)
-                # Finally reshape to have columns: mx my mz
+                # Finally reshape to have columns: fx fy fz
                 if self.meshtype == 'irregular':
-                    data = data[1:6 * n_spins + 1].reshape(-1, 6)
-                    # only get the last 3 cols with spin data
+                    data = data[1:6 * n_sites + 1].reshape(-1, 6)
+                    # only get the last 3 cols with field data
                     data = data[:, 3:]
                 elif self.meshtype == 'rectangular':
-                    data = data[1:3 * n_spins + 1].reshape(-1, 3)
+                    data = data[1:3 * n_sites + 1].reshape(-1, 3)
 
         else:
             # NOTE: more efficient is to use Pandas csv reader but this
@@ -166,15 +171,23 @@ class OOMMFData(object):
             elif self.meshtype == 'rectangular':
                 data = np.loadtxt(self.input_file)
 
-        self.m = data
-        self.Ms = np.sqrt(np.sum(self.m ** 2, axis=1))
-        self.Ms[self.Ms == 0.0] = 0.0
-        self.mx, self.my, self.mz = (self.m[:, 0],
-                                     self.m[:, 1],
-                                     self.m[:, 2])
-        self.mx[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
-        self.my[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
-        self.mz[self.Ms != 0.0] /= self.Ms[self.Ms != 0.0]
+        self.field = data
+        self.field_norm = np.sqrt(np.sum(self.field ** 2, axis=1))
+        self.field_norm[self.field_norm == 0.0] = 0.0
+        self.field_x, self.field_y, self.field_z = (self.field[:, 0],
+                                                    self.field[:, 1],
+                                                    self.field[:, 2])
+
+        if normalise_field:
+            self.nfield = np.copy(self.field)
+            self.nfield_x = self.nfield[:, 0]
+            self.nfield_y = self.nfield[:, 1]
+            self.nfield_z = self.nfield[:, 2]
+
+            _filter = self.field_norm != 0.0
+            self.nfield_x_n[_filter] /= self.field_norm[_filter]
+            self.nfield_y_n[_filter] /= self.field_norm[_filter]
+            self.nfield_z_n[_filter] /= self.field_norm[_filter]
 
     def generate_coordinates(self):
         """
@@ -214,7 +227,9 @@ class OOMMFData(object):
     def compute_sk_number(self, index=0, plane='xy'):
         """
 
-        Compute the skyrmion number S, defined as:
+        Assuming that the file being read contains the magnetisation field,
+        this method uses the normalised magnetisation (in self.nfield) to
+        compute the skyrmion number S, defined as:
                                 _
                      1         /       dm     dm
              S   =  ---  *    /   m .  --  X  --   dx dy
@@ -250,7 +265,8 @@ class OOMMFData(object):
         """
 
         # Spin data in a grid, dimensions are: z, y, x, 3
-        spin_grid = self.m.reshape(-1, self.ny, self.nx, 3)
+        m = self.nfield
+        spin_grid = m.reshape(-1, self.ny, self.nx, 3)
         # Get the specified slice along the specified dimension
         if plane == 'xy':
             spin_grid = spin_grid[index, :, :, :]

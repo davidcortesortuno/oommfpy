@@ -16,7 +16,7 @@ def omf2vtk(input_omf_file,
     """
 
     data = OOMMFData(input_omf_file)
-    data.generate_m()
+    data.generate_field(normalise_field=True)
     data.generate_coordinates()
 
     grid = (np.linspace(data.xmin * 1e9, data.xmax * 1e9, data.nx + 1),
@@ -27,13 +27,13 @@ def omf2vtk(input_omf_file,
     vtk_data = pyvtk.VtkData(structure, "")
 
     # Save the magnetisation
-    vtk_data.cell_data.append(pyvtk.Vectors(np.column_stack((data.mx,
-                                                             data.my,
-                                                             data.mz)),
+    vtk_data.cell_data.append(pyvtk.Vectors(np.column_stack((data.nfield_x,
+                                                             data.nfield_y,
+                                                             data.nfield_z)),
                               "m"))
 
     # Save Ms as scalar field
-    vtk_data.cell_data.append(pyvtk.Scalars(data.Ms, "Ms"))
+    vtk_data.cell_data.append(pyvtk.Scalars(data.field_norm, "Ms"))
 
     # Save to VTK file with specified output filename
     vtk_data.tofile(output_vtk_file, output_format)
