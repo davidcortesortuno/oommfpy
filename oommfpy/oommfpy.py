@@ -47,13 +47,11 @@ class FieldData(object):
             # Only OVF 2.0 file format allows arbitrary number of dimensions
             # of the field data. Otherwise just set it to default 3
             if k == 'valuedim':
-                num_val = int(re.search('(?<={}: )[0-9\-\.e]+'.format(k),
-                              data).group(0))
+                num_val = re.search('(?<={}: )[0-9\-\.e]+'.format(k), data)
                 if num_val:
-                    setattr(self, attrs[k], num_val)
+                    setattr(self, attrs[k], int(num_val.group(0)))
                 else:
                     setattr(self, attrs[k], 3)
-
                 continue
 
             # .................................................................
@@ -173,7 +171,8 @@ class FieldData(object):
                     # only get the last cols with field data (non coordinates)
                     data = data[:, 3:]
                 elif self.meshtype == 'rectangular':
-                    data = data[1:self.valuedim * n_sites + 1].reshape(-1, 3)
+                    field_dim = self.valuedim
+                    data = data[1:field_dim * n_sites + 1].reshape(-1, field_dim)
 
         else:
             # NOTE: more efficient is to use Pandas csv reader but this
@@ -196,9 +195,6 @@ class FieldData(object):
         self.field = self._generate_data()
         self.field_norm = np.sqrt(np.sum(self.field ** 2, axis=1))
         self.field_norm[self.field_norm == 0.0] = 0.0
-        self.field_x, self.field_y, self.field_z = (self.field[:, 0],
-                                                    self.field[:, 1],
-                                                    self.field[:, 2])
 
         if normalise_field:
             self.nfield = np.copy(self.field)
@@ -267,6 +263,9 @@ class MagnetisationData(FieldData):
     def generate_field(self):
         """
         Compute the magnetisation field data from the given input file
+
+        The data is stored in the self.field variable, and individual
+        components in the self.field_i variables, with i in {x,y,z}
         """
         self.field = self._generate_data()
         self.field_norm = np.sqrt(np.sum(self.field ** 2, axis=1))
