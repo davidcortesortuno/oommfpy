@@ -15,6 +15,7 @@ class FieldData(object):
     def __init__(self, input_file):
 
         self.input_file = input_file
+        self._data_format = None
         self.read_header()
 
     def read_header(self):
@@ -47,7 +48,7 @@ class FieldData(object):
             # Only OVF 2.0 file format allows arbitrary number of dimensions
             # of the field data. Otherwise just set it to default 3
             if k == 'valuedim':
-                num_val = re.search('(?<={}: )[0-9\-\.e]+'.format(k), data)
+                num_val = re.search(r'(?<={}: )[0-9\-\.e]+'.format(k), data)
                 if num_val:
                     setattr(self, attrs[k], int(num_val.group(0)))
                 else:
@@ -56,13 +57,13 @@ class FieldData(object):
 
             # .................................................................
 
-            num_val = float(re.search('(?<={}: )[0-9\-\.e]+'.format(k),
+            num_val = float(re.search(r'(?<={}: )[0-9\-\.e]+'.format(k),
                             data).group(0))
             setattr(self, attrs[k], num_val)
 
         # Add data format from last line
-        setattr(self, 'data_format', re.search('(?<=Begin: Data ).+',
-                                               data).group(0))
+        setattr(self, '_data_format', re.search(r'(?<=Begin: Data ).+',
+                                                data).group(0))
 
         # Compute number of elements in each direction
         self.nx = round((self.xmax - self.xmin) / self.dx)
@@ -72,7 +73,7 @@ class FieldData(object):
         # Obtain binary data type from header and check the dtype
         # to use it in Numpy's methods
         # Based on: https://github.com/deparkes/OOMMFTools/blob/master/oommftools/core/oommfdecode.py
-        if self.data_format == 'Binary 4':
+        if self._data_format == 'Binary 4':
             flag = _file.read(4)
             if struct.unpack('>f', flag)[0] == 1234567.0:
                 # print(struct.unpack('>f', flag)[0])
@@ -86,7 +87,7 @@ class FieldData(object):
 
         # In this case we could use _dtype = '>f8' or '<f8' but this does not
         # work with struct.unpack, which requires a double(?) >d or <d
-        elif self.data_format == 'Binary 8':
+        elif self._data_format == 'Binary 8':
             flag = _file.read(8)
             if struct.unpack('>d', flag)[0] == 123456789012345.0:
                 self._dtype = '>f8'
@@ -100,11 +101,11 @@ class FieldData(object):
         # Check mesh type to calculate the base positions ---------------------
 
         # Get the first 3 values if using binary data
-        if self.data_format.startswith('Binary'):
+        if self._data_format.startswith('Binary'):
             first_num_data = []
             for i in range(3):
                 # the data using the number of binary bits
-                num_data = _file.read(int(self.data_format[-1]))
+                num_data = _file.read(int(self._data_format[-1]))
                 # Decode the data using the dtype without binary bits number(?)
                 first_num_data.append(struct.unpack(self._dtype_st,
                                                     num_data)[0])
@@ -121,7 +122,7 @@ class FieldData(object):
             if self.meshtype == 'irregular':
                 setattr(self, k, float(first_num_data[i]))
             elif self.meshtype == 'rectangular':
-                num_val = float(re.search('(?<={}: )[0-9\-\.e]+'.format(k),
+                num_val = float(re.search(r'(?<={}: )[0-9\-\.e]+'.format(k),
                                 data).group(0))
                 setattr(self, k, num_val)
         # ---------------------------------------------------------------------
@@ -136,7 +137,10 @@ class FieldData(object):
 
         """
 
-        if self.data_format == 'Binary 4' or self.data_format == 'Binary 8':
+        if self._data_format is None:
+            raise Exception('File data format not identified')
+
+        if self._data_format == 'Binary 4' or self._data_format == 'Binary 8':
 
             with open(self.input_file, 'rb') as _file:
                 # First read the initial comments until the data begins
@@ -279,9 +283,13 @@ class MagnetisationData(FieldData):
         self.field_y[_filter] /= self.field_norm[_filter]
         self.field_z[_filter] /= self.field_norm[_filter]
 
-    def compute_sk_number(self, index=0, plane='xy'):
-        """
+        # Generate alternative names for the field data:
+        self.mx = self.field_x
+        self.my = self.field_y
+        self.mz = self.field_z
 
+    def compute_sk_number(self, index=0, plane='xy'):
+        r"""
         Compute the skyrmion number S, defined as:
                                 _
                      1         /       dm     dm
@@ -361,9 +369,9 @@ class MagnetisationData(FieldData):
 
         # self.sk_number = -np.sum(self.spin_grid * self.sk_number,
         #                          axis=2) / (16 * np.pi)
-        self.sk_number = -np.einsum('ijk,ijk->ij',
-                                    spin_grid,
-                                    self.sk_number) / (16 * np.pi)
+        self.sk_number = (-1) * np.einsum('ijk,ijk->ij',
+                                          spin_grid,
+                                          self.sk_number) / (16 * np.pi)
 
         # Total sk number (integral)
         return np.sum(self.sk_number.flatten())
