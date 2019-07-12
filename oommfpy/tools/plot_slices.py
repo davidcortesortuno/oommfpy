@@ -14,7 +14,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # -----------------------------------------------------------------------------
 
 
-def plot_omf_slices(input_omf_file, z=False, quiver=False):
+def plot_omf_slices(input_omf_file, z=False, quiver=False, hls=False):
     """
     Generates an interactive visualisation of the system by showing slices
     in the xy-plane with varying z coordinate
@@ -44,18 +44,26 @@ def plot_omf_slices(input_omf_file, z=False, quiver=False):
                 data.field_y[z_fltr] ** 2 +
                 data.field_z[z_fltr] ** 2) < 1e-6
                )
-    mz_data = data.field_z[z_fltr]
-    mz_data[Ms_fltr] = np.nan
-    mz_data.shape = (-1, len(data.xs))
+
+    if not hls:
+        m_data = data.field_z[z_fltr]
+        m_data[Ms_fltr] = np.nan
+        m_data.shape = (-1, len(data.ys))
+    else:
+        m_data = plot_tools.generate_colours(data.field[z_fltr].reshape(-1, 3))
+        m_data[Ms_fltr] = [0.9, 0.9, 0.9]
+        m_data.shape = (len(data.xs), len(data.ys), 3)
+
     # Plot as an image with pixels coloured by mz
-    p = ax.imshow(mz_data,
+    p = ax.imshow(m_data,
                   cmap='RdYlBu', vmin=-1, vmax=1,
                   extent=[data.xs.min() - 0.5 * data.dx * 1e9,
                           data.xs.max() + 0.5 * data.dx * 1e9,
                           data.ys.min() - 0.5 * data.dy * 1e9,
                           data.ys.max() + 0.5 * data.dy * 1e9
                           ],
-                  # aspect='auto'
+                  # aspect='auto',
+                  origin='lower'
                   )
 
     # pq = ax.quiver(data.x[z_fltr],
@@ -126,8 +134,9 @@ def plot_omf_slices(input_omf_file, z=False, quiver=False):
 @click.option('-i', '--input_omf_file', type=str,
               help='Path to OMF file', required=True)
 @click.option('--z', type=float, help='z coordinate')
-def plot_omf_slices_cli(input_omf_file, z):
-    plot_omf_slices(input_omf_file, z=z)
+@click.option('--hls', is_flag=True, help='Plot with HLS colourmap')
+def plot_omf_slices_cli(input_omf_file, z, hls):
+    plot_omf_slices(input_omf_file, z=z, hls=hls)
 
 
 # -----------------------------------------------------------------------------
