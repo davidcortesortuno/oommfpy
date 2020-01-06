@@ -1,7 +1,18 @@
 import setuptools
+from setuptools.extension import Extension
+from Cython.Build import cythonize
 
 with open('README.md') as f:
     long_description = f.read()
+
+com_args = ['-std=c99', '-O3', '-Wno-cpp', '-Wno-unused-function']
+extensions = [
+    Extension("oommfpy.tools.clib",
+              ["oommfpy/tools/clib/clib.pyx",
+               "oommfpy/tools/clib/vtk_writer.c"],
+              extra_compile_args=com_args
+              ),
+]
 
 setuptools.setup(
     name='oommfpy',
@@ -12,10 +23,12 @@ setuptools.setup(
     author='D. Cortes',
     author_email='d.cortes@soton.ac.uk',
     packages=setuptools.find_packages(),
+    ext_modules=cythonize(extensions),
     install_requires=['matplotlib',
                       'numpy',
                       'click',
-                      'pyvtk'
+                      'pyvtk',
+                      'cython'
                       ],
     classifiers=['License :: BSD2 License',
                  'Programming Language :: Python :: 3 :: Only',
