@@ -27,7 +27,6 @@ setuptools.setup(
     install_requires=['matplotlib',
                       'numpy',
                       'click',
-                      'pyvtk',
                       'cython'
                       ],
     classifiers=['License :: BSD2 License',

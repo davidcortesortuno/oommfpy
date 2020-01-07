@@ -30,11 +30,13 @@ def omf2vtk(input_omf_file,
 
     # Save VTK in binary format with Ms and m data
     clib.WriteVTK_RectilinearGrid_C(data.grid[0], data.grid[1], data.grid[2],
-                                    data.field, data.field_norm,
+                                    data.field.reshape(-1),
+                                    data.field_norm,
                                     data.nx, data.ny, data.nz,
                                     output_vtk_file)
 
 
+# Leaving for TESTING
 def omf2vtk_PYVTK(input_omf_file,
                   output_vtk_file,
                   output_format='ascii'
