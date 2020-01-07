@@ -16,7 +16,7 @@ extensions = [
 
 setuptools.setup(
     name='oommfpy',
-    version='0.1',
+    version='0.9',
     description=('Python lib to read and process OOMMF data files'),
     long_description=long_description,
     long_description_content_type='text/markdown',
