@@ -5,7 +5,8 @@
 
 typedef unsigned char uchar;
 // Reverse byte to BigEndian representation (reverse byte order?) from the
-// LittleEndian repr given in Linux (in other architectures this might not be necesssary)
+// LittleEndian repr given in Linux (in other architectures this might not be
+// necessary)
 double DoubleSwap( double f )
 {
    union
@@ -27,7 +28,7 @@ double DoubleSwap( double f )
    return dat2.f;
 }
 
-/* Write array of doubles with size n into the file given by the pointer fptr 
+/* Write array of doubles with size n into the file given by the pointer fptr
  * Values are written with the BigEndian order
  */
 void WriteDouble(double * arr, int n, FILE * fptr) {
@@ -54,7 +55,7 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
     sprintf(header,"LOOKUP_TABLE default\n");
     fprintf(fptr, "%s", header);
     for(int i = 0; i < n; i++) {
-        printf("%f\n", Ms[i]);
+        // printf("%f\n", Ms[i]);
         double d = DoubleSwap(Ms[i]);
         fwrite(&d, sizeof(d), 1, fptr);
     }
@@ -73,7 +74,7 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
     }
 }
 
-// If the mesh is made up of nx * ny * nz cells, it has 
+// If the mesh is made up of nx * ny * nz cells, it has
 // (nx + 1) * (ny + 1) * (nz + 1) vertices.
 void WriteVTK_RectilinearGrid(double * gridx, double * gridy, double * gridz,
                               double * m,   // 3 * nx*ny*nz array
@@ -93,7 +94,7 @@ void WriteVTK_RectilinearGrid(double * gridx, double * gridy, double * gridz,
     }
 
     sprintf(header,"# vtk DataFile Version 2.0\n");
-    sprintf(header + strlen(header),"FIDIMAG VTK Data\n");
+    sprintf(header + strlen(header),"OOMMFPY VTK Data\n");
     sprintf(header + strlen(header),"BINARY\n");
     sprintf(header + strlen(header),"DATASET %s\n","RECTILINEAR_GRID");
     fprintf(fptr, "%s", header);

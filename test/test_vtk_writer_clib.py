@@ -2,13 +2,13 @@ import oommfpy.tools as ot
 import numpy as np
 
 nx, ny, nz = 3, 3, 1
-m = np.array([0., 0., 1.,
+m = np.array([-1., 0., 1.,
               0, 0, 1,
               1, 0, 0,
+              -1, 1, 1,
               0, 1, 1,
               0, 1, 1,
-              0, 1, 1,
-              1, 0, 0,
+              -1, 0, 0,
               1, 0, 0,
               1, 0, 0
               ])

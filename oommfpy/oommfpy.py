@@ -244,7 +244,14 @@ class FieldData(object):
         self.ys = np.unique(self.y)
         self.zs = np.unique(self.z)
 
-    # -------------------------------------------------------------------------
+        # ---------------------------------------------------------------------
+        # Generate the grid of vertices of the mesh of cuboids, useful for
+        # saving VTKs
+        self.grid = (np.linspace(self.xmin, self.xmax, self.nx + 1),
+                     np.linspace(self.ymin, self.ymax, self.ny + 1),
+                     np.linspace(self.zmin, self.zmax, self.nz + 1)
+                     )
+
 
 
 # -----------------------------------------------------------------------------

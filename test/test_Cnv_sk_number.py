@@ -1,4 +1,4 @@
-import numpy as np
+# import numpy as np
 import oommfpy.oommfpy as op
 import re
 import os

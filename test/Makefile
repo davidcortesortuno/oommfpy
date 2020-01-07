@@ -8,7 +8,6 @@ sim:
 	oommf boxsi test_mif.mif
 
 convert_to_formats:
-	
 	OMFFILE="test-Oxs_MinDriver-Magnetization-00-0000000.omf"; \
 	oommf avf2ovf -format text -grid irreg $${OMFFILE} test_irreg_txt.omf; \
 	oommf avf2ovf -format text -grid reg $${OMFFILE} test_rect_txt.omf; \
