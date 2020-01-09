@@ -1,7 +1,6 @@
 from .. import MagnetisationData
 from . import clib
-import numpy as np
-import pyvtk
+# import numpy as np
 import click
 
 
@@ -34,40 +33,6 @@ def omf2vtk(input_omf_file,
                                     data.field_norm,
                                     data.nx, data.ny, data.nz,
                                     output_vtk_file)
-
-
-# Leaving for TESTING
-def omf2vtk_PYVTK(input_omf_file,
-                  output_vtk_file,
-                  output_format='ascii'
-                  ):
-    """
-    Convert a given input_omf_file into a VTK file in ascii or binary format
-    Magnetisation (direction and magnitude) values are stored as cell values
-    """
-
-    data = MagnetisationData(input_omf_file)
-    data.generate_field()
-    data.generate_coordinates()
-
-    grid = (np.linspace(data.xmin * 1e9, data.xmax * 1e9, data.nx + 1),
-            np.linspace(data.ymin * 1e9, data.ymax * 1e9, data.ny + 1),
-            np.linspace(data.zmin * 1e9, data.zmax * 1e9, data.nz + 1))
-
-    structure = pyvtk.RectilinearGrid(* grid)
-    vtk_data = pyvtk.VtkData(structure, "")
-
-    # Save the magnetisation
-    vtk_data.cell_data.append(pyvtk.Vectors(np.column_stack((data.field_x,
-                                                             data.field_y,
-                                                             data.field_z)),
-                              "m"))
-
-    # Save Ms as scalar field
-    vtk_data.cell_data.append(pyvtk.Scalars(data.field_norm, "Ms"))
-
-    # Save to VTK file with specified output filename
-    vtk_data.tofile(output_vtk_file, output_format)
 
 
 # Command line interface ------------------------------------------------------
