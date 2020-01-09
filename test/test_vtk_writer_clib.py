@@ -17,6 +17,8 @@ def generate_omfs():
     using the OOMMF script: isolated_sk_DMI_Cnv.mif
     It is necessary to have OOMMF installed with the latest DMI
     modules.
+
+    For the speed test we generate a mesh of 200 x 200 x 1 cells
     """
 
     OMF_DIR = os.path.join(this_dir, 'vtk_writer_omfs/')
@@ -76,14 +78,19 @@ def test_vtk_writer():
 def test_vtk_writer_speed():
     """
     Comparison of C backend with the old pyvtk interface
+
+    For this we use a 200 x 200 x 1 mesh and convert the OMF file into a VTK
+    file using both the C library and the PyVTK library. We run the same
+    conversion for each method during 20 times and print a mean.
+
     """
 
+    # C backend ---------------------------------------------------------------
     _file = glob.glob('./vtk_writer_omfs/isolated_sk_Cnv_n_200-Oxs*.omf')[0]
     data = op.MagnetisationData(_file)
     data.generate_field()
     data.generate_coordinates()
     output_vtk_file = 'vtk_writer_omfs/isolated_sk_Cnv_n_200.vtk'
-
 
     C_timings = []
     for i in range(20):
@@ -112,10 +119,7 @@ def test_vtk_writer_speed():
         vtk_data = pyvtk.VtkData(structure, "")
 
         # Save the magnetisation
-        vtk_data.cell_data.append(pyvtk.Vectors(np.column_stack((data.field_x,
-                                                                 data.field_y,
-                                                                 data.field_z)),
-                                  "m"))
+        vtk_data.cell_data.append(pyvtk.Vectors(data.field, "m"))
 
         # Save Ms as scalar field
         vtk_data.cell_data.append(pyvtk.Scalars(data.field_norm, "Ms"))
@@ -132,5 +136,8 @@ def test_vtk_writer_speed():
 
 if __name__ == "__main__":
 
+    # Generate the OMF file with the 200 x 200 x 1 mesh
     generate_omfs()
+    # Compare the conversion of the OMF file into VTK using the C library
+    # with a conversion using PyVTK
     test_vtk_writer_speed()
