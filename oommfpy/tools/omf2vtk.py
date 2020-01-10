@@ -39,16 +39,19 @@ def omf2vtk(input_omf_file,
                                     data.field_norm,
                                     data.nx, data.ny, data.nz,
                                     output_vtk_file)
-    print('Finished!')
 
 
 def omf2vtk_batch(input_omfs,
-                  # output_vtk_file,
                   output_format='binary'
                   ):
     """
-    Convert a given input_omf_file into a VTK file in binary format
-    Magnetisation (direction and magnitude) values are stored as cell values
+    Convert all OMF files (or with a different extension) into VTK files
+    according to the input path, which can be a directory or a path with a
+    wildcard expression. Progress of the conversion is printed on every
+    iteration
+
+    input_omfs    :: a directory, or path with a wildcard, e.g. 'omfs/m_*.ovf'
+    output_format :: only binary
     """
 
     # Currently the C library accepts only binary format
