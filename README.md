@@ -35,7 +35,9 @@ to install Cython if is not present in the system.
 ## Documentation
 
 For now check the `doc/ipynb` folder which contains a tutorial with basic
-functionality
+functionality. To load a file with a magnetisation field, which are more
+commonly found, use the `MagnetisationData` class. To load any field, such as
+the dipolar field, use the `FieldData` class.
 
 Scripts to convert `omf` to VTK can be called directly as, for example,
 
