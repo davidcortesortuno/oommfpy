@@ -3,7 +3,7 @@
 # OOMMFPy
 
 A very minimal and simple Python library to read and extract data from OOMMF
-magnetisation files `omf`, which are also use din MuMax3. In addition to this
+magnetisation files `omf`, which are also used in MuMax3. In addition to this
 library we provide tools to plot `omf` files and convert them to `vtk` files.
 
 Highlights:
