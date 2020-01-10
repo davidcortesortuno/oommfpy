@@ -1,7 +1,11 @@
 import setuptools
 from setuptools.extension import Extension
+import sys
 
-# Check that Cython is installed: https://github.com/pypa/setuptools/issues/1317
+# Check that Cython is installed:
+# https://github.com/pypa/setuptools/issues/1317
+# TODO: Implement pyproject.toml file with dependencies
+# See: https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
 try:
     from Cython.Build import cythonize
 except ImportError:
