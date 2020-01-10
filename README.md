@@ -3,17 +3,19 @@
 # OOMMFPy
 
 A very minimal and simple Python library to read and extract data from OOMMF
-magnetisation files `omf`. In addition to this library we provide tools to plot
-`omf` files and convert them to `vtk` files.
+magnetisation files `omf`, which are also use din MuMax3. In addition to this
+library we provide tools to plot `omf` files and convert them to `vtk` files.
 
 Highlights:
 
 - Read `omf` files in any format
+- Can also read `ovf` files and MuMax3 files
 - Painless conversion of the data in an `omf` file into Numpy arrays for data
   analysis
 - Fast calculation (using Numpy) of the skyrmion number in a slice of the
   system in any plane orientation (`xy`, `xz`, `yz`)
-- Minimal tool to convert `omf` files to VTK
+- Fast reading of `omf` files in binary format (using Numpy's `fromfile`)
+- Minimal and super fast tool to convert `omf` files to VTK format
 - Plot functions
 
 ## Install
@@ -27,6 +29,9 @@ A `setup.py` file is provided to install this library using `pip`
 If successful, the `plot_omf` and `omf2vtk` tools are installed in the
 corresponding `bin` directory and can be called from the command line.
 
+A C library is built with the installation process, thus the setup file tries
+to install Cython if is not present in the system.
+
 ## Documentation
 
 For now check the `doc/ipynb` folder which contains a tutorial with basic
@@ -38,12 +43,18 @@ Scripts to convert `omf` to VTK can be called directly as, for example,
 omf2vtk -i omfs/my_oommf_output.omf -o test.vtk
 ```
 
-Similarly with the `plot_omf` function.
+The input path can also be a directory or a path with a wildcard, *e.g.*
+`omfs/*.omf`. This method assumes the files in the path come from the same
+simulation as the tool loads the mesh from the first file in the path and then
+only updates the magnetisation fields.  
+
+Similar options are provided for the `plot_omf` function. Use the `--help` for
+details.
 
 ## TODO
 
 - [ ] More tests
-- [ ] More documentation and function docstrings
+- [ ] Add pyproject.toml file to avoid manual installation of Cython in setup.py
 - [ ] More options to plotting library
 - [ ] Point data at cell centres of VTK file
 - [ ] Print `z` coordinate when computing sk number
