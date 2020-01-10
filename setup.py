@@ -1,6 +1,18 @@
 import setuptools
 from setuptools.extension import Extension
-from Cython.Build import cythonize
+
+# Check that Cython is installed: https://github.com/pypa/setuptools/issues/1317
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    import subprocess
+
+    errno = subprocess.call([sys.executable, "-m", "pip", "install", "cython"])
+    if errno:
+        print("Please install Cython")
+        raise SystemExit(errno)
+    else:
+        from Cython.Build import cythonize
 
 with open('README.md') as f:
     long_description = f.read()
@@ -15,6 +27,7 @@ extensions = [
 ]
 
 setuptools.setup(
+    # setup_requires=['cython'],  # not working (see the link at top)
     name='oommfpy',
     version='0.9',
     description=('Python lib to read and process OOMMF data files'),
