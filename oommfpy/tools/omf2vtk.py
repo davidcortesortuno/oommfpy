@@ -48,7 +48,10 @@ def omf2vtk_batch(input_omfs,
     Convert all OMF files (or with a different extension) into VTK files
     according to the input path, which can be a directory or a path with a
     wildcard expression. Progress of the conversion is printed on every
-    iteration
+    iteration.
+    IMPORTANT: this function assumes the OMF files in the folder come from
+    the SAME simulation, since the mesh grid is not updated. The loop only
+    updates the magnetisation field.
 
     input_omfs    :: a directory, or path with a wildcard, e.g. 'omfs/m_*.ovf'
     output_format :: only binary
