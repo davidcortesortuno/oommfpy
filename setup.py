@@ -21,7 +21,7 @@ except ImportError:
 with open('README.md') as f:
     long_description = f.read()
 
-com_args = ['-std=c99', '-O3', '-Wno-cpp', '-Wno-unused-function']
+com_args = ['-std=c99', '-O3']
 extensions = [
     Extension("oommfpy.tools.clib",
               ["oommfpy/tools/clib/clib.pyx",

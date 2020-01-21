@@ -40,9 +40,9 @@ def plot_omf_slices(input_omf_file, z=False, quiver=False, hls=False):
     # Filters to plot a slice perp to the z direction
     z_fltr = data.z == z_data
     # Filter to remove points with nzero magnetisation
-    Ms_fltr = ((data.field_x[z_fltr] ** 2 +
-                data.field_y[z_fltr] ** 2 +
-                data.field_z[z_fltr] ** 2) < 1e-6
+    Ms_fltr = ((data.mx[z_fltr] ** 2 +
+                data.my[z_fltr] ** 2 +
+                data.mz[z_fltr] ** 2) < 1e-6
                )
 
     if not hls:

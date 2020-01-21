@@ -102,7 +102,7 @@ def plot_omf(omf_file,
 
     else:
         # Spin data in a grid
-        spin_z = data[:, 2].reshape(-1, data.nx)
+        spin_z = data.field[:, 2].reshape(-1, data.nx)
 
         ax.imshow(spin_z, origin='lower', cmap=cmap, interpolation='None',
                   vmin=-1, vmax=1,
