@@ -41,7 +41,7 @@ def generate_omfs():
 
 # Function to sort OMF files according to number of mesh sites n from filename
 def get_n(f):
-    return int(re.search('(?<=n_)\d+(?=-Oxs)', f).group(0))
+    return int(re.search(r'(?<=n_)\d+(?=-Oxs)', f).group(0))
 
 
 def test_sk_number_vs_mesh_discretisation():
