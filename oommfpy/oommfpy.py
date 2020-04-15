@@ -39,7 +39,8 @@ class FieldData(object):
                  # 'xbase': 'xbase',  'ybase': 'ybase', 'zbase': 'zbase',
                  'xmin': 'xmin', 'ymin': 'ymin', 'zmin': 'zmin',
                  'xmax': 'xmax', 'ymax': 'ymax', 'zmax': 'zmax',
-                 'valuedim': 'valuedim'
+                 'valuedim': 'valuedim',
+                 'xnodes': 'nx', 'ynodes': 'ny', 'znodes': 'nz'
                  }
 
         # Regex search the attributes. Stepsizes are specified as dx, dy, dz
@@ -56,6 +57,16 @@ class FieldData(object):
                 continue
 
             # .................................................................
+            # Rectangular grids specify the number of nodes/mesh-points in
+            # every direction
+            if k == 'xnodes' or k == 'ynodes' or k == 'znodes':
+                try:
+                    num_val = re.search(r'(?<={}: )[0-9\-\.e]+'.format(k), data)
+                    setattr(self, attrs[k], int(num_val.group(0)))
+                except AttributeError:  # if regex search fails
+                    setattr(self, attrs[k], None)
+                continue
+            # .................................................................
 
             num_val = float(re.search(r'(?<={}: )[0-9\-\.e]+'.format(k),
                             data).group(0))
@@ -66,9 +77,10 @@ class FieldData(object):
                                                 data).group(0))
 
         # Compute number of elements in each direction
-        self.nx = round((self.xmax - self.xmin) / self.dx)
-        self.ny = round((self.ymax - self.ymin) / self.dy)
-        self.nz = round((self.zmax - self.zmin) / self.dz)
+        if not self.nx:  # assuming if nx is None, then ny and nz also are None
+            self.nx = round((self.xmax - self.xmin) / self.dx)
+            self.ny = round((self.ymax - self.ymin) / self.dy)
+            self.nz = round((self.zmax - self.zmin) / self.dz)
 
         # Obtain binary data type from header and check the dtype
         # to use it in Numpy's methods
