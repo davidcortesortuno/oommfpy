@@ -307,7 +307,8 @@ class MagnetisationData(FieldData):
         self.my = self.field_y
         self.mz = self.field_z
 
-    def compute_sk_number(self, index=0, plane='xy'):
+    def compute_sk_number(self, index=0, plane='xy',
+                          method='finite_differences'):
         r"""
         Compute the skyrmion number S, defined as:
                                 _
@@ -368,19 +369,48 @@ class MagnetisationData(FieldData):
         # obtain neighbours (which are zero spin components) at the boundary of
         # the sample
         # We obtain a grid with the sk number density
-        self.sk_number = (np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
-                                   spin_pad[1:-1, 2:, :],   # s(i,j+1)
-                                   axis=2) +
-                          np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
-                                   spin_pad[1:-1, :-2, :],  # s(i,j-1)
-                                   axis=2) -
-                          np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
-                                   spin_pad[1:-1, 2:, :],   # s(i,j+1)
-                                   axis=2) -
-                          np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
-                                   spin_pad[1:-1, :-2, :],  # s(i,j-1)
-                                   axis=2)
-                          )
+        if method == 'finite_differences':
+            self.sk_number = (np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
+                                       spin_pad[1:-1, 2:, :],   # s(i,j+1)
+                                       axis=2) +
+                              np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
+                                       spin_pad[1:-1, :-2, :],  # s(i,j-1)
+                                       axis=2) -
+                              np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
+                                       spin_pad[1:-1, 2:, :],   # s(i,j+1)
+                                       axis=2) -
+                              np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
+                                       spin_pad[1:-1, :-2, :],  # s(i,j-1)
+                                       axis=2)
+                              )
+        elif method == 'spin_lattice':
+            for ngbs in [(2, 1), (1, 2), (0, 1), (1, 0)]:
+
+                # Compute weights of digonally opposite neighbour 1 or 1/2
+                # ...
+
+                denom = (1 +
+                         np.einsum('ijk,ijk->ij',
+                                   spin_pad[1:-1, 1:-1, :],                 # s(i, j)
+                                   spin_pad[ngbs[0]:ngbs[0] - 2, 1:-1, :])  # s(i+1,j)
+                         + np.einsum('ijk,ijk->ij',
+                                     spin_pad[1:-1, 1:-1, :],                 # s(i, j)
+                                     spin_pad[ngbs[1]:ngbs[1] - 2, 1:-1, :])  # s(i,j+1)
+                         + np.einsum('ijk,ijk->ij',
+                                     spin_pad[ngbs[0]:ngbs[0] - 2, 1:-1, :],  # s(i+1,j)
+                                     spin_pad[ngbs[1]:ngbs[1] - 2, 1:-1, :])  # s(i,j+1)
+                         )
+            # denom2 = 1 + (np.einsum('ijk,ijk->ij',
+            #                        spin_pad[1:-1, 1:-1, :],    # s(i, j)
+            #                        spin_pad[2:, 1:-1, :]) +    # s(i+1,j)
+            #              np.einsum('ijk,ijk->ij',
+            #                        spin_pad[1:-1, 1:-1, :],    # s(i, j)
+            #                        spin_pad[1:-1, 2:, :]) +    # s(i, j+1)
+            #              np.einsum('ijk,ijk->ij',
+            #                        spin_pad[2:, 1:-1, :],      # s(i+1, j)
+            #                        spin_pad[1:-1, 2:, :])      # s(i, j+1)
+            #              )
+                self.sk_number += np.arctan()
 
         # The dot product of every site with the cross product between
         # their neighbours that was already computed above
