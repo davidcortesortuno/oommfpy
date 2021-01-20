@@ -384,33 +384,56 @@ class MagnetisationData(FieldData):
                                        axis=2)
                               )
         elif method == 'spin_lattice':
-            for ngbs in [(2, 1), (1, 2), (0, 1), (1, 0)]:
+            # Kim and Mulkers (2020) algorithm to compute the topological
+            # charge of a finite diff lattice using Berg and Luscher spin
+            # lattice approach, and averaged using 4 spin triangles
+
+            # This list contains 2-tuples where each element of every tuple
+            # is a slice (or Numpy slice np.s_) to obtain the components of
+            # the spin in one of the triangle vertices, e.g.
+            #   triangles[0][0] are the spin components of s(i+1, j) and
+            #   triangles[0][1] are the spin components of s(i, j+1)
+            triangles = [(np.s_[2:, 1:-1, :], np.s_[1:-1, 2:, :]),    # right triangle
+                         (np.s_[:-2, 1:-1, :], np.s_[1:-1, :-2, :]),  # bottom left
+                         (np.s_[2:, 1:-1, :], np.s_[:-2, 1:-1, :]),   # left triangle
+                         (np.s_[1:-1, :-2, :], np.s_[2:, 1:-1, :])]
+            # These are weights in the opposite corner of the triangles to
+            # avoid doouble counting
+            weight_ngbs = [np.s_[2:, 2:, :], np.s_[:-2, :-2, :],
+                           np.s_[:-2, 2:, :], np.s_[2:, :-2, :]]
+
+            for n, ngbs in enumerate(triangles):   # bottom right
 
                 # Compute weights of digonally opposite neighbour 1 or 1/2
                 # ...
+                weights = np.linalg.norm(spin_pad, axis=2)
+                weights = np.where(weights[weight_ngbs[n]] < 1e-6,
+                                   1, 0.5)
 
-                denom = (1 +
-                         np.einsum('ijk,ijk->ij',
-                                   spin_pad[1:-1, 1:-1, :],                 # s(i, j)
-                                   spin_pad[ngbs[0]:ngbs[0] - 2, 1:-1, :])  # s(i+1,j)
-                         + np.einsum('ijk,ijk->ij',
-                                     spin_pad[1:-1, 1:-1, :],                 # s(i, j)
-                                     spin_pad[ngbs[1]:ngbs[1] - 2, 1:-1, :])  # s(i,j+1)
-                         + np.einsum('ijk,ijk->ij',
-                                     spin_pad[ngbs[0]:ngbs[0] - 2, 1:-1, :],  # s(i+1,j)
-                                     spin_pad[ngbs[1]:ngbs[1] - 2, 1:-1, :])  # s(i,j+1)
-                         )
-            # denom2 = 1 + (np.einsum('ijk,ijk->ij',
-            #                        spin_pad[1:-1, 1:-1, :],    # s(i, j)
-            #                        spin_pad[2:, 1:-1, :]) +    # s(i+1,j)
-            #              np.einsum('ijk,ijk->ij',
-            #                        spin_pad[1:-1, 1:-1, :],    # s(i, j)
-            #                        spin_pad[1:-1, 2:, :]) +    # s(i, j+1)
-            #              np.einsum('ijk,ijk->ij',
-            #                        spin_pad[2:, 1:-1, :],      # s(i+1, j)
-            #                        spin_pad[1:-1, 2:, :])      # s(i, j+1)
-            #              )
-                self.sk_number += np.arctan()
+                denom = 1 + (np.einsum('ijk,ijk->ij',               # s_i * s_j
+                                       spin_pad[1:-1, 1:-1, :],
+                                       spin_pad[ngbs[0]]) +
+                             np.einsum('ijk,ijk->ij',               # s_i * s_k
+                                       spin_pad[1:-1, 1:-1, :],
+                                       spin_pad[ngbs[1]]) +
+                             np.einsum('ijk,ijk->ij',               # s_j * s_k
+                                       spin_pad[ngbs[0]],
+                                       spin_pad[ngbs[1]])
+                             )
+
+                # s_j X s_k
+                triangle_charge = np.cross(spin_pad[ngbs[0]],  # s_j
+                                           spin_pad[ngbs[1]],  # s_k
+                                           axis=2)
+                # s_i * (s_j X s_k)
+                triangle_charge = np.einsum('ijk,ijk->ij',
+                                            spin_pad[1:-1, 1:-1, :], 
+                                            triangle_charge)
+                # Multiply the weights
+                np.multiply(weights, triangle_charge, out=triangle_charge)
+                np.divide(triangle_charge, denom, out=triangle_charge)
+
+                self.sk_number += 2.0 * np.arctan(triangle_charge)
 
         # The dot product of every site with the cross product between
         # their neighbours that was already computed above
