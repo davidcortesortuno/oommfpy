@@ -392,7 +392,7 @@ class MagnetisationData(FieldData):
             #                          axis=2) / (16 * np.pi)
             self.sk_number = (-1) * np.einsum('ijk,ijk->ij',
                                               spin_grid,
-                                              self.sk_number) / (16 * np.pi)
+                                              self.sk_number) / 4.
         elif method == 'spin_lattice':
             # Kim and Mulkers (2020) algorithm to compute the topological
             # charge of a finite diff lattice using Berg and Luscher spin
@@ -452,11 +452,13 @@ class MagnetisationData(FieldData):
                 # Multiply the weights
                 np.multiply(weights, triangle_charge, out=triangle_charge)
 
-                self.sk_number += triangle_charge  # ?? / (self.dx * self.dy)
-
+                # SIGN? --> seems to be different for the integral method
+                self.sk_number += triangle_charge
+        else:
+            raise Exception('Specify valid method for the calculation of Q_sk')
 
         # Total sk number (integral)
-        return np.sum(self.sk_number.flatten())
+        return np.sum(self.sk_number.flatten()) / (4. * np.pi)
 
 # -----------------------------------------------------------------------------
 
