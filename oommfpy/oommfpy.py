@@ -383,6 +383,16 @@ class MagnetisationData(FieldData):
                                        spin_pad[1:-1, :-2, :],  # s(i,j-1)
                                        axis=2)
                               )
+
+            # The dot product of every site with the cross product between
+            # their neighbours that was already computed above
+            # We save this quantity to the self.sk_number method
+
+            # self.sk_number = -np.sum(self.spin_grid * self.sk_number,
+            #                          axis=2) / (16 * np.pi)
+            self.sk_number = (-1) * np.einsum('ijk,ijk->ij',
+                                              spin_grid,
+                                              self.sk_number) / (16 * np.pi)
         elif method == 'spin_lattice':
             # Kim and Mulkers (2020) algorithm to compute the topological
             # charge of a finite diff lattice using Berg and Luscher spin
@@ -393,22 +403,30 @@ class MagnetisationData(FieldData):
             # the spin in one of the triangle vertices, e.g.
             #   triangles[0][0] are the spin components of s(i+1, j) and
             #   triangles[0][1] are the spin components of s(i, j+1)
+            #
+            #              s(i+1,j)            s(i,j+1)
             triangles = [(np.s_[2:, 1:-1, :], np.s_[1:-1, 2:, :]),    # right triangle
+                         # s(i-1,j)            s(i,j-1)
                          (np.s_[:-2, 1:-1, :], np.s_[1:-1, :-2, :]),  # bottom left
-                         (np.s_[2:, 1:-1, :], np.s_[:-2, 1:-1, :]),   # left triangle
-                         (np.s_[1:-1, :-2, :], np.s_[2:, 1:-1, :])]
+                         # s(i,j+1)           s(i-1,j)
+                         (np.s_[1:-1, 2:, :], np.s_[:-2, 1:-1, :]),   # left triangle
+                         # s(i,j-1)            s(i+1,j)
+                         (np.s_[1:-1, :-2, :], np.s_[2:, 1:-1, :])]   # bottom right
             # These are weights in the opposite corner of the triangles to
-            # avoid doouble counting
-            weight_ngbs = [np.s_[2:, 2:, :], np.s_[:-2, :-2, :],
-                           np.s_[:-2, 2:, :], np.s_[2:, :-2, :]]
+            # avoid double counting
+            weight_ngbs = [np.s_[2:, 2:, :],    # s(i+1,j+1)
+                           np.s_[:-2, :-2, :],  # s(i-1,j-1)
+                           np.s_[:-2, 2:, :],   # s(i-1,j+1)
+                           np.s_[2:, :-2, :]]   # s(i+1,j-1)
 
+            self.sk_number = np.zeros((spin_pad.shape[0] - 2,
+                                       spin_pad.shape[1] - 2))
             for n, ngbs in enumerate(triangles):   # bottom right
 
                 # Compute weights of digonally opposite neighbour 1 or 1/2
                 # ...
-                weights = np.linalg.norm(spin_pad, axis=2)
-                weights = np.where(weights[weight_ngbs[n]] < 1e-6,
-                                   1, 0.5)
+                weights = np.linalg.norm(spin_pad[weight_ngbs[n]], axis=2)
+                weights = np.where(weights < 1e-6, 1, 0.5)
 
                 denom = 1 + (np.einsum('ijk,ijk->ij',               # s_i * s_j
                                        spin_pad[1:-1, 1:-1, :],
@@ -427,23 +445,15 @@ class MagnetisationData(FieldData):
                                            axis=2)
                 # s_i * (s_j X s_k)
                 triangle_charge = np.einsum('ijk,ijk->ij',
-                                            spin_pad[1:-1, 1:-1, :], 
+                                            spin_pad[1:-1, 1:-1, :],
                                             triangle_charge)
+                np.arctan2(triangle_charge, denom, out=triangle_charge)
+                np.multiply(2.0, triangle_charge, out=triangle_charge)
                 # Multiply the weights
                 np.multiply(weights, triangle_charge, out=triangle_charge)
-                np.divide(triangle_charge, denom, out=triangle_charge)
 
-                self.sk_number += 2.0 * np.arctan(triangle_charge)
+                self.sk_number += triangle_charge  # ?? / (self.dx * self.dy)
 
-        # The dot product of every site with the cross product between
-        # their neighbours that was already computed above
-        # We save this quantity to the self.sk_number method
-
-        # self.sk_number = -np.sum(self.spin_grid * self.sk_number,
-        #                          axis=2) / (16 * np.pi)
-        self.sk_number = (-1) * np.einsum('ijk,ijk->ij',
-                                          spin_grid,
-                                          self.sk_number) / (16 * np.pi)
 
         # Total sk number (integral)
         return np.sum(self.sk_number.flatten())
