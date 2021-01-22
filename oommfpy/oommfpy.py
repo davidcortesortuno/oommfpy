@@ -395,6 +395,7 @@ class MagnetisationData(FieldData):
         # the sample
         # We obtain a grid with the sk number density
         if method == 'finite_differences':
+            # In this case we still use central difference at the boundary spins
             self.sk_number = (np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
                                        spin_pad[1:-1, 2:, :],   # s(i,j+1)
                                        axis=2) +
@@ -418,6 +419,33 @@ class MagnetisationData(FieldData):
             self.sk_number = np.einsum('ijk,ijk->ij',
                                        spin_grid,
                                        self.sk_number) / 4.
+
+            # -----------------------------------------------------------------
+            # The following approach uses backward or forward difference
+            # for spins at the boundary
+
+            # # s(i+1,j) - s(i-1,j)
+            # fdiff_x = spin_pad[2:, 1:-1, :] - spin_pad[:-2, 1:-1, :]
+            # # Forward difference for spins at the boundary +x
+            # ngbs_x = np.linalg.norm(spin_pad[2:, 1:-1, :], axis=2)
+            # fdiff_x[ngbs_x < 1e-6] += spin_grid[ngbs_x < 1e-6]
+            # # Backward difference for spins at the boundary -x (re-use array)
+            # ngbs_x[:] = np.linalg.norm(spin_pad[:-2, 1:-1, :], axis=2)
+            # fdiff_x[ngbs_x < 1e-6] -= spin_grid[ngbs_x < 1e-6]
+            #
+            # # s(i+1,j) - s(i-1,j)
+            # fdiff_y = spin_pad[1:-1, 2:, :] - spin_pad[1:-1, :-2, :]
+            # # Forward difference for spins at the boundary +y
+            # ngbs_y = np.linalg.norm(spin_pad[1:-1, 2:, :], axis=2)
+            # fdiff_y[ngbs_y < 1e-6] += spin_grid[ngbs_y < 1e-6]
+            # # Backward difference for spins at the boundary -y (re-use array)
+            # ngbs_y[:] = np.linalg.norm(spin_pad[1:-1, :-2, :], axis=2)
+            # fdiff_y[ngbs_y < 1e-6] -= spin_grid[ngbs_y < 1e-6]
+
+            # self.sk_number = 0.25 * np.einsum('ijk,ijk->ij',
+            #                                   spin_grid,
+            #                                   np.cross(fdiff_x, fdiff_y, axis=2))
+
         elif method == 'spin_lattice':
             # This list contains 2-tuples where each element of every tuple
             # is a slice (or Numpy slice np.s_) to obtain the components of
