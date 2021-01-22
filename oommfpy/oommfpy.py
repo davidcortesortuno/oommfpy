@@ -307,6 +307,7 @@ class MagnetisationData(FieldData):
         self.my = self.field_y
         self.mz = self.field_z
 
+    # TODO: add typing for function arguments
     def compute_sk_number(self, index=0, plane='xy',
                           method='finite_differences'):
         r"""
@@ -361,6 +362,7 @@ class MagnetisationData(FieldData):
         plane       :: 'xy', 'xz' or 'yz'
         index       :: any integer from 0 up to len(xs) or len(ys) or len(zs)
                        depending on the slice plane
+        method      :: 'finite_differences' or 'spin_lattice'
 
         """
 
@@ -383,6 +385,10 @@ class MagnetisationData(FieldData):
         # Same as doing:
         # spin_pad = np.zeros((nx +2, ny + 2, 3))
         # spin_pad[1:-1, 1:-1, :] = spin_grid
+
+        # TODO: adding support for PBCs is straightforward if we copy the 1st
+        # column to the N+1 column, and the Nth column to the 0th column
+        # in the corresponding direction of PBC
 
         # Here we vectorise the cross products using the padded matrix to
         # obtain neighbours (which are zero spin components) at the boundary of
@@ -516,7 +522,7 @@ class OOMMFODTReader(object):
 
     def __getitem__(self, column_name):
         """
-        Returns the correspondign column from the name when calling
+        Returns the corresponding column from the name when calling
         an element of this Class through []
         """
         if column_name not in self.columns.keys():

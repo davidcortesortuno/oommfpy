@@ -67,14 +67,23 @@ def test_sk_number_vs_mesh_discretisation():
 
     mesh_length = 60  # nm
 
+    print('Sk Number as a function of discretisation')
+    print('FD: finite differences     SL: spin lattice')
     for FILE in _files:
         n = get_n(FILE)
         oommf_data = op.MagnetisationData(FILE)
         oommf_data.generate_field()
-        print('dx = {:.2f} nm --> Q = {}'.format(
+
+        print('dx = {:.2f} nm --> Q_FD = {}'.format(
             mesh_length / n,
-            oommf_data.compute_sk_number(plane='xy', index=0))
-            )
+            oommf_data.compute_sk_number(plane='xy', index=0,
+                                         method='finite_differences')))
+
+        print('dx = {:.2f} nm --> Q_SL = {}'.format(
+            mesh_length / n,
+            oommf_data.compute_sk_number(plane='xy', index=0,
+                                         method='spin_lattice')))
+        print('---')
 
 
 if __name__ == '__main__':
