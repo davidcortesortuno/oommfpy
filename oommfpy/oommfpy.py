@@ -310,32 +310,51 @@ class MagnetisationData(FieldData):
     def compute_sk_number(self, index=0, plane='xy',
                           method='finite_differences'):
         r"""
-        Compute the skyrmion number S, defined as:
+
+        Compute the skyrmion number S for a two dimensional layer. To do this,
+        we convert the self.m array with the magnetization, into a (nx, ny, 3)
+        matrix (a grid), using a 2D slice of the mesh. The slice lies in the
+        specified plane and an index integer. For example, plane='xy' and
+        index=0 means a slice at the z=self.zs[0] coordinate
+
+        This function creates a self.sk_number array with the sk number density
+        per mesh site and returns the total sum
+
+        Calculation: there are two methods:
+
+        * FINITE DIFFERENCES: defined as
                                 _
                      1         /       dm     dm
              S   =  ---  *    /   m .  --  X  --   dx dy
                     4 PI   _ /         dx     dy
 
-        for a two dimensional layer. To do this, we convert the self.m array
-        with the magnetization, into a (nx, ny, 3) matrix (a grid), using a 2D
-        slice of the mesh. The slice lies in the specified plane and an index
-        integer. For example, plane='xy' and index=0 means a slice at the
-        z=self.zs[0] coordinate
-
-        This functio creates a self.sk_number array with the sk number density
-        per mesh site and returns the total sum
-
-        Calculation:
-
         A finite difference discretisation of the continuum magnetisation
         field, using central differences, and a simple midpoint rule
         for the 2D integration leads to:
 
-        S =   -(  M_i \cdot ( M_{i+1} \times M_{j+1} )
-                + M_i \cdot ( M_{i-1} \times M_{j-1} )
-                - M_i \cdot ( M_{i-1} \times M_{j+1} )
-                - M_i \cdot ( M_{i+1} \times M_{j-1} )
-                ) / (16 * PI)
+            S = (1 / 4 * PI) *  (  M_i \cdot ( M_{i+1} \times M_{j+1} )
+                                 + M_i \cdot ( M_{i-1} \times M_{j-1} )
+                                 - M_i \cdot ( M_{i-1} \times M_{j+1} )
+                                 - M_i \cdot ( M_{i+1} \times M_{j-1} )
+                                 ) / 4
+
+        * SPIN LATTICE: Kim and Mulkers [IOP SciNotes1(2020) 025211] algorithm
+        to compute the topological charge of a finite differences grid using
+        Berg and Luscher spin lattice approach, and averaged using 4 spin
+        triangles. The charge for a triangle made of spins q_i, q_j, q_k is
+        defined as q_ijk, thus the total charge is
+                        __
+            S =  1     \   q_ijk
+                ---    /__
+                4 PI  triangles
+
+            tan( 1 q_ijk )                M_i * (M_j X M_k)
+               ( -       )  =  --------------------------------------
+               ( 2       )      1 + M_i * M_j + M_i * M_k + M_j * M_k
+
+        The triangles need to be weighted by 1.0 when the spins are next to an
+        empty site or at the boundary [IOP SciNotes1(2020) 025211], and by 0.5
+        when they are within the sample.
 
         Parameters
 
@@ -390,30 +409,26 @@ class MagnetisationData(FieldData):
 
             # self.sk_number = -np.sum(self.spin_grid * self.sk_number,
             #                          axis=2) / (16 * np.pi)
-            self.sk_number = (-1) * np.einsum('ijk,ijk->ij',
-                                              spin_grid,
-                                              self.sk_number) / 4.
+            self.sk_number = np.einsum('ijk,ijk->ij',
+                                       spin_grid,
+                                       self.sk_number) / 4.
         elif method == 'spin_lattice':
-            # Kim and Mulkers (2020) algorithm to compute the topological
-            # charge of a finite diff lattice using Berg and Luscher spin
-            # lattice approach, and averaged using 4 spin triangles
-
             # This list contains 2-tuples where each element of every tuple
             # is a slice (or Numpy slice np.s_) to obtain the components of
             # the spin in one of the triangle vertices, e.g.
             #   triangles[0][0] are the spin components of s(i+1, j) and
             #   triangles[0][1] are the spin components of s(i, j+1)
             #
-            #              s(i+1,j)            s(i,j+1)
-            triangles = [(np.s_[2:, 1:-1, :], np.s_[1:-1, 2:, :]),    # right triangle
-                         # s(i-1,j)            s(i,j-1)
-                         (np.s_[:-2, 1:-1, :], np.s_[1:-1, :-2, :]),  # bottom left
-                         # s(i,j+1)           s(i-1,j)
-                         (np.s_[1:-1, 2:, :], np.s_[:-2, 1:-1, :]),   # left triangle
-                         # s(i,j-1)            s(i+1,j)
-                         (np.s_[1:-1, :-2, :], np.s_[2:, 1:-1, :])]   # bottom right
-            # These are weights in the opposite corner of the triangles to
-            # avoid double counting
+            #              s(i+1,j)            s(i,j+1)        # right triangle
+            triangles = [(np.s_[2:, 1:-1, :], np.s_[1:-1, 2:, :]),
+                         # s(i-1,j)            s(i,j-1)        # bottom left
+                         (np.s_[:-2, 1:-1, :], np.s_[1:-1, :-2, :]),
+                         # s(i,j+1)           s(i-1,j)         # left triangle
+                         (np.s_[1:-1, 2:, :], np.s_[:-2, 1:-1, :]),
+                         # s(i,j-1)            s(i+1,j)        # bottom right
+                         (np.s_[1:-1, :-2, :], np.s_[2:, 1:-1, :])]
+            # These are weights associated to spins in the opposite corner of
+            # the triangles to avoid double counting
             weight_ngbs = [np.s_[2:, 2:, :],    # s(i+1,j+1)
                            np.s_[:-2, :-2, :],  # s(i-1,j-1)
                            np.s_[:-2, 2:, :],   # s(i-1,j+1)
@@ -423,8 +438,7 @@ class MagnetisationData(FieldData):
                                        spin_pad.shape[1] - 2))
             for n, ngbs in enumerate(triangles):   # bottom right
 
-                # Compute weights of digonally opposite neighbour 1 or 1/2
-                # ...
+                # Compute weights of digonally opposite neighbour: 1 or 1/2
                 weights = np.linalg.norm(spin_pad[weight_ngbs[n]], axis=2)
                 weights = np.where(weights < 1e-6, 1, 0.5)
 
@@ -452,7 +466,6 @@ class MagnetisationData(FieldData):
                 # Multiply the weights
                 np.multiply(weights, triangle_charge, out=triangle_charge)
 
-                # SIGN? --> seems to be different for the integral method
                 self.sk_number += triangle_charge
         else:
             raise Exception('Specify valid method for the calculation of Q_sk')
