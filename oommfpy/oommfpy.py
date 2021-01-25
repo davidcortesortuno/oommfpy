@@ -370,11 +370,14 @@ class MagnetisationData(FieldData):
         spin_grid = self.field.reshape(-1, self.ny, self.nx, 3)
         # Get the specified slice along the specified dimension
         if plane == 'xy':
-            spin_grid = spin_grid[index, :, :, :]
+            # Reverse the y-orientation
+            spin_grid = spin_grid[index, -1::-1, :, :]
         elif plane == 'xz':
-            spin_grid = spin_grid[:, index, :, :]
+            # Reverse z-direction
+            spin_grid = spin_grid[-1::-1, index, :, :]
         elif plane == 'yz':
-            spin_grid = spin_grid[:, :, index, :]
+            # Reverse z-direction
+            spin_grid = spin_grid[-1::-1, :, index, :]
         else:
             raise Exception('Specify a valid plane')
 
