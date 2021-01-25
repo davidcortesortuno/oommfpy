@@ -1,11 +1,10 @@
 # import numpy as np
 import oommfpy.oommfpy as op
 import re
-import os
-import glob
 import subprocess
 import shutil
-this_dir = os.path.dirname(os.path.abspath(__file__))
+from pathlib import Path
+this_dir = Path(__file__).resolve().parent
 
 
 def generate_omfs():
@@ -18,14 +17,14 @@ def generate_omfs():
     modules. Recommended to install JOOMMF's OOMMF conda package
     """
 
-    OMF_DIR = os.path.join(this_dir, 'omfs/')
-    if os.path.exists(OMF_DIR):
+    OMF_DIR = Path(this_dir / 'omfs/')
+    if OMF_DIR.exists():
         shutil.rmtree(OMF_DIR)
-    os.makedirs(OMF_DIR)
+    OMF_DIR.mkdir(exist_ok=True)
 
     for n in range(20, 101, 20):
         SIM_NAME = 'omfs/isolated_sk_Cnv_n_{:03d}'.format(n)
-        SCRIPT = os.path.join(this_dir, 'isolated_sk_DMI_Cnv.mif')
+        SCRIPT = Path(this_dir / 'isolated_sk_DMI_Cnv.mif')
 
         job = ('oommf boxsi -threads 2 '
                '-parameters "NX {0} '
@@ -41,7 +40,7 @@ def generate_omfs():
 
 # Function to sort OMF files according to number of mesh sites n from filename
 def get_n(f):
-    return int(re.search(r'(?<=n_)\d+(?=-Oxs)', f).group(0))
+    return int(re.search(r'(?<=n_)\d+(?=-Oxs)', str(f)).group(0))
 
 
 def test_sk_number_vs_mesh_discretisation():
@@ -62,7 +61,7 @@ def test_sk_number_vs_mesh_discretisation():
     generate_omfs()
 
     # The files in the right order
-    _files = glob.glob(os.path.join(this_dir, 'omfs/*.omf'))
+    _files = Path(this_dir / 'omfs/').glob('*.omf')
     _files = sorted(_files, key=get_n)
 
     mesh_length = 60  # nm
