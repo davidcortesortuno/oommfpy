@@ -13,14 +13,15 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # -----------------------------------------------------------------------------
 
 
-def plot_omf(omf_file,
+def plot_omf(omf_file, ax=None,
              savefig=None, cmap='hls', cbar=True, dpi=150,
-             cbar_offsets=[-0.15, -0.2]):
+             cbar_offsets=[-0.15, -0.2], cbar_size=0.2):
     """
     A simple function to plot a slice of the system in the xy-plane with a
     specific colormap (HLS by default)
 
     omf_file        :: Path to omf file
+    ax              :: Matplotlib axes object where to plot if specified
     savefig         :: Filename of a figure to be saved with a format allowed
                        by matplotlib
     cmap            :; hls or any colormap accepted by matplotlib
@@ -28,14 +29,16 @@ def plot_omf(omf_file,
                        colorbar if other cmap is used
     dpi             :: figure dpi
     cbar_offsets    :: offset x-y positions for the colorbar (hls only)
+    cbar_size       :: size relative to plot axes fraction (only for hls color)
     """
 
     data = MagnetisationData(omf_file)
     data.generate_field()
     data.generate_coordinates()
 
-    f = plt.figure()
-    ax = f.add_subplot(111)
+    if not ax:
+        f = plt.figure()
+        ax = f.add_subplot(111)
 
     if cmap == 'hls':
         spin_data = plot_tools.generate_colours(data.field[:, :])
@@ -51,39 +54,35 @@ def plot_omf(omf_file,
             box = ax.get_position()
             axColor = plt.axes([box.x1 + cbar_offsets[0],
                                 box.y1 + cbar_offsets[1],
-                                0.2, 0.2], projection='polar')
-            # For the x axis, we need an extra element so rgb has 1 less
-            # element along the y direction (might change in the future)
-            azimuths = np.arange(0, 361, 1)
-            zeniths = np.arange(20, 50, 1)
-            dz = 30
+                                cbar_size, cbar_size], projection='polar')
+            daz = 361  # Number of discretised values i.e. N of colours
+            azimuths = np.linspace(0, 360, daz)
+            dzn = 30   # Zeniths or "rings" from the centre towards the bndry
+            zeniths = np.arange(0, dzn, 1)
 
-            # colours have 1 less element along x
-            rgb = np.ones((dz * 360, 3))
+            rgb = np.ones((dzn * daz, 3))
             # Set the HLS hue value from 0 to 2 PI from the azimuth values
-            # We tile the circle 30 times:
+            # We tile the circle "dz" times:
             #   [0 ... 2PI] -> [0...2PI 0 .. 2PI ...]
-            rgb[:, 0] = np.tile(azimuths[:-1] * np.pi / 180, dz)
-            # For every circle (360 values) we increase the Light value
-            # from 0 to 1, i.e. from black to white, dz times:
-            #  [0 .. 1] -> [0 0 ... 0 1 1 ... 1]
-            # This code makes a wider outer black area: ----
-            greys = np.zeros(360)
-            greys[:340] = np.linspace(1, 0, 340)
-            greys[340:] = 0
-            rgb[:, 1] = np.repeat(greys, dz)
-            # Instead of: -----
-            # rgb[:, 1] = np.repeat(np.linspace(0, 1, 360), dz)
-            # -----
+            rgb[:, 0] = np.tile(np.radians(azimuths), dzn)
+            # For every circle (daz values) we increase the Light value
+            # from 1 to 0, i.e. from white to black, dz times:
+            #               |--dzn--|
+            #  [1 .. 0] -> [1 1 ... 1 0.8 0.8 ... 0.8 0.6 ... 0 0 ... 0]
+            greys = np.zeros(dzn)
+            # Last 2 rings are left completely black:
+            greys[:-1] = np.linspace(1, 0, dzn - 1)
+            rgb[:, 1] = np.repeat(greys, daz)
             # Now we convert every row in HLS to RGB values
             rgb = np.apply_along_axis(plot_tools.convert_to_RGB, 1, rgb)
 
             # And plot in the polar axes:
-            axColor.pcolormesh(azimuths * np.pi / 180.0, zeniths,
+            axColor.pcolormesh(np.radians(azimuths), zeniths,
                                # only necessary as required n of args:
-                               np.zeros((dz, 360)),
+                               np.zeros((dzn, daz)),
                                # cmap=plt.cm.hsv
-                               color=rgb
+                               color=rgb,
+                               shading='auto'
                                )
             axColor.set_yticks([])
             # axColor.set_xticks([0, np.pi * 0.5, np.pi, 1.5 * np.pi])
@@ -122,7 +121,7 @@ def plot_omf(omf_file,
     plt.show()
 
 
-def plot_charge_density(omf_file, savefig=None, dpi=150,
+def plot_charge_density(omf_file, ax=None, savefig=None, dpi=150,
                         plane='xy', index=0):
     """
     Testing
@@ -134,20 +133,21 @@ def plot_charge_density(omf_file, savefig=None, dpi=150,
     data.generate_coordinates()
     data.compute_sk_number(plane=plane, index=index)
 
-    f = plt.figure()
+    if not ax:
+        f, ax = plt.subplots()
 
     charge = data.sk_number
     vmax = np.max(np.abs(charge))
 
     charge.reshape(-1,)[data.field_norm < 1e-10] = np.nan
 
-    plt.imshow(charge, origin='lower', cmap='RdYlBu', interpolation='None',
-               vmin=-vmax, vmax=vmax,
-               extent=[data.xmin * 1e9, data.xmax * 1e9,
-                       data.ymin * 1e9, data.ymax * 1e9]
-               )
-    plt.ylabel(r'y (nm)')
-    plt.xlabel(r'x (nm)')
+    ax.imshow(charge, origin='lower', cmap='RdYlBu', interpolation='None',
+              vmin=-vmax, vmax=vmax,
+              extent=[data.xmin * 1e9, data.xmax * 1e9,
+                      data.ymin * 1e9, data.ymax * 1e9]
+              )
+    ax.set_ylabel(r'y (nm)')
+    ax.set_xlabel(r'x (nm)')
     plt.colorbar()
 
     if savefig:

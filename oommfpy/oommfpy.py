@@ -289,10 +289,15 @@ class MagnetisationData(FieldData):
 
         The data is stored in the self.field variable, and individual
         components in the self.field_i variables, with i in {x,y,z}
+
+        The field norm self.field_norm is also stored in the alias self.Ms
         """
         self.field = self._generate_data()
         self.field_norm = np.sqrt(np.sum(self.field ** 2, axis=1))
         self.field_norm[self.field_norm == 0.0] = 0.0
+        # Alternative name
+        self.Ms = self.field_norm
+
         self.field_x, self.field_y, self.field_z = (self.field[:, 0],
                                                     self.field[:, 1],
                                                     self.field[:, 2])
