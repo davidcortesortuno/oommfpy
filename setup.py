@@ -33,7 +33,7 @@ extensions = [
 setuptools.setup(
     # setup_requires=['cython'],  # not working (see the link at top)
     name='oommfpy',
-    version='0.9',
+    version='1.0a',
     description=('Python lib to read and process OOMMF data files'),
     long_description=long_description,
     long_description_content_type='text/markdown',
