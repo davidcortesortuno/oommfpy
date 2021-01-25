@@ -369,15 +369,25 @@ class MagnetisationData(FieldData):
         # Spin data in a grid, dimensions are: z, y, x, 3
         spin_grid = self.field.reshape(-1, self.ny, self.nx, 3)
         # Get the specified slice along the specified dimension
+        #
+        # Notice the 1st axis (or row) is reversed to perform the finite diff
+        # correctly. For instance, a xy slice will give the y-axis in
+        # "descending" order when we do print(spin_grid), however we need it
+        # in 'ascending' order (similar to what we do when we plot the array
+        # using plt.imshow(spin_grid, .., origin='lower'). This will give the
+        # correct differences in the y-direction: s(i, j+1) - s(i, j-1)
+        #
+        # To get the inverse we just create a memory view of the original array
+        # thus if we change the view it will also change the original array
         if plane == 'xy':
-            # Reverse the y-orientation
-            spin_grid = spin_grid[index, -1::-1, :, :]
+            # Reverse the y-orientation (just creating a new memory view)
+            spin_grid = spin_grid[index, ::-1, :, :]
         elif plane == 'xz':
             # Reverse z-direction
-            spin_grid = spin_grid[-1::-1, index, :, :]
+            spin_grid = spin_grid[::-1, index, :, :]
         elif plane == 'yz':
             # Reverse z-direction
-            spin_grid = spin_grid[-1::-1, :, index, :]
+            spin_grid = spin_grid[::-1, :, index, :]
         else:
             raise Exception('Specify a valid plane')
 
@@ -393,35 +403,41 @@ class MagnetisationData(FieldData):
         # column to the N+1 column, and the Nth column to the 0th column
         # in the corresponding direction of PBC
 
+        # Skyrmion number density
+        self.sk_number = np.zeros((spin_pad.shape[0] - 2,
+                                   spin_pad.shape[1] - 2))
+        # A view of the self.sk_number array but in reversed order because the
+        # calculations are done using the reversed spin_grid array
+        sk_num_rev = self.sk_number[::-1, :]
+
         # Here we vectorise the cross products using the padded matrix to
         # obtain neighbours (which are zero spin components) at the boundary of
         # the sample
         # We obtain a grid with the sk number density
         if method == 'finite_differences':
-            # In this case we still use central difference at the boundary spins
-            self.sk_number = (np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
-                                       spin_pad[1:-1, 2:, :],   # s(i,j+1)
-                                       axis=2) +
-                              np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
-                                       spin_pad[1:-1, :-2, :],  # s(i,j-1)
-                                       axis=2) -
-                              np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
-                                       spin_pad[1:-1, 2:, :],   # s(i,j+1)
-                                       axis=2) -
-                              np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
-                                       spin_pad[1:-1, :-2, :],  # s(i,j-1)
-                                       axis=2)
-                              )
+            # Here we still use central difference at the boundary spins
+            sk_num_cross = (np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
+                                     spin_pad[1:-1, 2:, :],   # s(i,j+1)
+                                     axis=2) +
+                            np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
+                                     spin_pad[1:-1, :-2, :],  # s(i,j-1)
+                                     axis=2) -
+                            np.cross(spin_pad[:-2, 1:-1, :],  # s(i-1,j)
+                                     spin_pad[1:-1, 2:, :],   # s(i,j+1)
+                                     axis=2) -
+                            np.cross(spin_pad[2:, 1:-1, :],   # s(i+1,j)
+                                     spin_pad[1:-1, :-2, :],  # s(i,j-1)
+                                     axis=2)
+                            )
 
             # The dot product of every site with the cross product between
             # their neighbours that was already computed above
             # We save this quantity to the self.sk_number method
 
-            # self.sk_number = -np.sum(self.spin_grid * self.sk_number,
-            #                          axis=2) / (16 * np.pi)
-            self.sk_number = np.einsum('ijk,ijk->ij',
-                                       spin_grid,
-                                       self.sk_number) / 4.
+            # self.sk_number = np.sum(spin_grid * sk_num_rev,
+            #                         axis=2) / (16 * np.pi)
+            np.einsum('ijk,ijk->ij', spin_grid, sk_num_cross, out=sk_num_rev)
+            np.multiply(0.25, sk_num_rev, out=sk_num_rev)
 
             # -----------------------------------------------------------------
             # The following approach uses backward or forward difference
@@ -445,9 +461,9 @@ class MagnetisationData(FieldData):
             # ngbs_y[:] = np.linalg.norm(spin_pad[1:-1, :-2, :], axis=2)
             # fdiff_y[ngbs_y < 1e-6] -= spin_grid[ngbs_y < 1e-6]
 
-            # self.sk_number = 0.25 * np.einsum('ijk,ijk->ij',
-            #                                   spin_grid,
-            #                                   np.cross(fdiff_x, fdiff_y, axis=2))
+            # np.einsum('ijk,ijk->ij', spin_grid,
+            #           np.cross(fdiff_x, fdiff_y, axis=2), out=sk_num_rev),
+            # np.multiply(0.25, sk_num_rev, out=sk_num_rev)
 
         elif method == 'spin_lattice':
             # This list contains 2-tuples where each element of every tuple
@@ -471,8 +487,6 @@ class MagnetisationData(FieldData):
                            np.s_[:-2, 2:, :],   # s(i-1,j+1)
                            np.s_[2:, :-2, :]]   # s(i+1,j-1)
 
-            self.sk_number = np.zeros((spin_pad.shape[0] - 2,
-                                       spin_pad.shape[1] - 2))
             for n, ngbs in enumerate(triangles):   # bottom right
 
                 # Compute weights of digonally opposite neighbour: 1 or 1/2
@@ -503,7 +517,7 @@ class MagnetisationData(FieldData):
                 # Multiply the weights
                 np.multiply(weights, triangle_charge, out=triangle_charge)
 
-                self.sk_number += triangle_charge
+                sk_num_rev += triangle_charge
         else:
             raise Exception('Specify valid method for the calculation of Q_sk')
 
