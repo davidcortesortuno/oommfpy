@@ -375,13 +375,16 @@ class MagnetisationData(FieldData):
         spin_grid = self.field.reshape(-1, self.ny, self.nx, 3)
         # Get the specified slice along the specified dimension
         if plane == 'xy':
-            # Reverse the y-orientation (just creating a new memory view)
+            # y-direction in axis=1; x-direction in axis=2  transforms to
+            # -----> y-direction in axis=0; x-direction in axis=1
             spin_grid = spin_grid[index, :, :, :]
         elif plane == 'xz':
-            # Reverse z-direction
+            # z-direction in axis=0; x-direction in axis=2
+            # -----> z-direction in axis=0; x-direction in axis=1
             spin_grid = spin_grid[:, index, :, :]
         elif plane == 'yz':
-            # Reverse z-direction
+            # z-direction in axis=0 y-direction in axis=1
+            # -----> z-direction in axis=0; y-direction in axis=1
             spin_grid = spin_grid[:, :, index, :]
         else:
             raise Exception('Specify a valid plane')
@@ -410,6 +413,8 @@ class MagnetisationData(FieldData):
         # We obtain a grid with the sk number density
         if method == 'finite_differences':
             # Here we still use central difference at the boundary spins
+            # Notice: if we use a 'xy' plane the
+            #         x direction is in axis=1 and y direction in axis=0
             sk_num_cross = (np.cross(spin_pad[1:-1, 2:, :],   # s(i+1,j)
                                      spin_pad[2:, 1:-1, :],   # s(i,j+1)
                                      axis=2) +
