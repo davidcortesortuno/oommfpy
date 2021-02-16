@@ -88,14 +88,14 @@ Specify UHH_ThetaEvolve [subst {
   do_precess 1
   gamma_LL 2.21e5
   alpha $ALPHA
-	fixed_timestep 2e-13
+	fixed_timestep 1e-13
 	temperature $T
 	uniform_seed $SEED
 }]
 
 Specify Oxs_TimeDriver [subst {
   evolver UHH_ThetaEvolve
-  stopping_time 100e-09
+  stopping_time 5e-12
   stage_count 2000
   mesh :mesh
   Ms $Ms
