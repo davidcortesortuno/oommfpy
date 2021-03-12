@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <arpa/inet.h>
+#include <arpa/inet.h>  // Windows might need winsock2.h
 #include <stdint.h>
 
 // #define _FILE "../../../../test/test_rect_txt.omf"
@@ -14,10 +14,32 @@ bool StartsWith(const char *a, const char *b)
    return 0;
 }
 
-bool isBigEndian(){
-   int number = 1;
-   return (*(char*)&number != 1);
+// Check if machine is Bigendian
+// bool isBigEndian(){
+//    int number = 1;
+//    return (*(char*)&number != 1);
+// }
+
+
+float read_binary4_chunk (FILE * fp) {
+
+    float f;
+    char buffer[4];
+    int st;
+    st = fread(buffer, 4, 1, fp);
+
+    // Unsigned 32 bit integer (4 bytes)
+    uint32_t unint;
+    // Convert char to unint
+    memcpy(&unint, buffer, sizeof(unint));
+    // Network Byte Order to host -> we get an unsigned 4 byte int
+    unint = ntohl(unint);
+    // Convert to float (4 bytes)
+    memcpy(&f, &unint, sizeof(float));
+
+    return f;
 }
+
 
 int read_ovf(void) {
 
@@ -39,13 +61,16 @@ int read_ovf(void) {
     // fgets(chunk, 128, fp);
     // puts(chunk);
 
+    float f;
 
-    float a;
-    char buffer[4];
-    char buffer_new[4];
-    int st;
-    st = fread(buffer, 4, 1, fp);
+    // The first chunk of data should print the signature 1234567 for binary4
+    f = read_binary4_chunk(fp);
+    printf("%f\n", f);
 
+    // char buffer[4];
+    // char buffer_new[4];
+    // int st;
+    // st = fread(buffer, 4, 1, fp);
     // // First chunk of data is in Bigendian format so we must reverse the order
     // // of the bytes
     // // My Linux machine is LittleEndian
@@ -54,26 +79,18 @@ int read_ovf(void) {
     // for(int i=0; i < sizeof(float); i++) {
     //     buffer_new[sizeof(float) - i - 1] = buffer[i];
     // }
-    // memcpy(&a, buffer_new, sizeof(float));
-
-    // Unsigned 32 bit integer (4 bytes)
-    uint32_t unint;
-    // Convert char to unint
-    memcpy(&unint, buffer, sizeof(unint));
-    // Network Byte Order to host -> we get an unisgned 4 byte int
-    uint32_t ai = ntohl(unint);
-    // Convert to float (4 bytes)
-    memcpy(&a, &ai, sizeof(float));
+    // memcpy(&f, buffer_new, sizeof(float));
 
     // TODO: if we use 8 bytes, we have to use a double (64 bits) and
     // uint64_t for ntohl
     // TODO: Wrap this reading process in a function
 
-    // sscanf(buffer, "%f", &a);
 
-    printf("Buff %s\n", buffer_new);
-    printf("%f\n", a);
-    printf("Size t %d\n", st);
+    // Now we get the rest of the data
+    for(int i = 0; i < 6; i++) {
+        f = read_binary4_chunk(fp);
+        printf("%f\n", f);
+    }
 
     // double vx, vy, vz;
     // int n_data = 9;
