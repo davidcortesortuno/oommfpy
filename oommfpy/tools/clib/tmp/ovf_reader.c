@@ -4,8 +4,23 @@
 #include <arpa/inet.h>  // Windows might need winsock2.h
 #include <stdint.h>
 
+// https://stackoverflow.com/questions/3022552/is-there-any-standard-htonl-like-function-for-64-bits-integers-in-c
+#if __BIG_ENDIAN__
+// In this case it is not necessary to swap byte order
+# define ntohll(x) (x)
+#else
+// If the system is LittleEndian (e.g. Linux) then define ntohll for 64 bits
+# define ntohll(x) (((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
+#endif
+
 // #define _FILE "../../../../test/test_rect_txt.omf"
-#define _FILE "../../../../test/test_rect_b4.omf"
+#define _FILE "../../../../test/test_rect_b8.omf"
+
+typedef enum {
+    TXT,
+    BINARY4,
+    BINARY8,
+} data_type;
 
 
 bool StartsWith(const char *a, const char *b)
@@ -19,6 +34,42 @@ bool StartsWith(const char *a, const char *b)
 //    int number = 1;
 //    return (*(char*)&number != 1);
 // }
+
+void read_binary8_N_times (FILE * fp, double * decoded_arr, int N) {
+
+    char buffer[8];
+    int st;
+    // Unsigned 32 bit integer (4 bytes)
+    uint64_t unint;
+    
+    for (int i = 0; i < N; ++i) {
+        st = fread(buffer, 8, 1, fp);
+        // Convert char to unint
+        memcpy(&unint, buffer, sizeof(unint));
+        // Network Byte Order to host -> we get an unsigned 8 byte int
+        unint = ntohll(unint);
+        // Convert to doouble (8 bytes)
+        memcpy(&decoded_arr[i], &unint, sizeof(double));
+    }
+}
+
+void read_binary4_N_times (FILE * fp, float * decoded_arr, int N) {
+
+    char buffer[4];
+    int st;
+    // Unsigned 32 bit integer (4 bytes)
+    uint32_t unint;
+    
+    for (int i = 0; i < N; ++i) {
+        st = fread(buffer, 4, 1, fp);
+        // Convert char to unint
+        memcpy(&unint, buffer, sizeof(unint));
+        // Network Byte Order to host -> we get an unsigned 4 byte int
+        unint = ntohl(unint);
+        // Convert to float (4 bytes)
+        memcpy(&decoded_arr[i], &unint, sizeof(float));
+    }
+}
 
 
 float read_binary4_chunk (FILE * fp) {
@@ -38,6 +89,19 @@ float read_binary4_chunk (FILE * fp) {
     memcpy(&f, &unint, sizeof(float));
 
     return f;
+}
+
+double read_binary8_chunk (FILE * fp) {
+
+    double d;
+    char buffer[8];
+    int st;
+    uint64_t unint;
+    st = fread(buffer, 1, 8, fp);
+    memcpy(&unint, buffer, sizeof(unint));
+    unint = ntohll(unint);
+    memcpy(&d, &unint, sizeof(double));
+    return d;
 }
 
 
@@ -61,11 +125,10 @@ int read_ovf(void) {
     // fgets(chunk, 128, fp);
     // puts(chunk);
 
-    float f;
-
+    double f;
     // The first chunk of data should print the signature 1234567 for binary4
-    f = read_binary4_chunk(fp);
-    printf("%f\n", f);
+    f = read_binary8_chunk(fp);
+    printf("%lf\n", f);
 
     // char buffer[4];
     // char buffer_new[4];
@@ -87,17 +150,17 @@ int read_ovf(void) {
 
 
     // Now we get the rest of the data
-    for(int i = 0; i < 6; i++) {
-        f = read_binary4_chunk(fp);
-        printf("%f\n", f);
-    }
-
-    // double vx, vy, vz;
-    // int n_data = 9;
-    // for(int i=0; i < n_data; i++) {
-    //     fscanf(fp, "%lf %lf %lf", &vx, &vy, &vz);
-    //     printf("%lf %lf %lf \n", vx, vy, vz);
+    // for(int i = 0; i < 6; i++) {
+    //     f = read_binary4_chunk(fp);
+    //     printf("%f\n", f);
     // }
+    
+     double data[27];
+
+     read_binary8_N_times(fp, data, 27);
+     for (int i = 0; i < 27; ++i) {
+         printf("%lf\n", data[i]);
+     }
 
     fclose(fp);
 
