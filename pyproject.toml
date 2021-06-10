@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "oommfpy"
+version = "1.0"
+description = "Minimal Python lib to process OOMMF format output files"
+authors = ["David Cortés-Ortuño <https://github.com/davidcortesortuno>"]
+license = "BSD 2-Clause"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+Cython = "^0.29.23"
+numpy = "^1.20.3"
+click = "^7.1"
+matplotlib = "^3.3.4"
+scipy = "^1.6.3"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
