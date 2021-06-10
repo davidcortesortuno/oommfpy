@@ -53,6 +53,8 @@ def loadtxt_iter(txtfile, ncols, delimiter=None, skiprows=0, dtype=np.float64,
 
     if usecols is None:
         COLS = np.arange(ncols)
+    else:
+        COLS = ncols
     data = data.reshape((-1, ncols))[:, COLS]
 
     return data
