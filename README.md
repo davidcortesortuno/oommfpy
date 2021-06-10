@@ -1,5 +1,15 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2611194.svg)](https://doi.org/10.5281/zenodo.2611194)
 
+```
+   .+------+-------+-------+-------+-------+-------+-------+
+ .'      .'      .'      .'      .'      .'      .'      .'|
++---+--+'------+'------+'------+'------+'------+'------+'  -
+|      |       |       |       |       |       |       |   |
+|   O  +   O   +   M   +   M   +   F   +   P   +   Y   +   +
+|      |       |       |       |       |       |       | .'
++------+'------+'------+'------+-------+-------+-------+'
+```
+
 # OOMMFPy
 
 A very minimal and simple Python library to read and extract data from OOMMF
@@ -48,7 +58,7 @@ omf2vtk -i omfs/my_oommf_output.omf -o test.vtk
 The input path can also be a directory or a path with a wildcard, *e.g.*
 `omfs/*.omf`. This method assumes the files in the path come from the same
 simulation as the tool loads the mesh from the first file in the path and then
-only updates the magnetisation fields.  
+only updates the magnetisation fields.
 
 Similar options are provided for the `plot_omf` function. Use the `--help` for
 details.
@@ -58,9 +68,9 @@ details.
 - [ ] More tests
 - [ ] Add pyproject.toml file to avoid manual installation of Cython in setup.py
 - [ ] More options to plotting library
-- [ ] Point data at cell centres of VTK file
 - [ ] Print `z` coordinate when computing sk number
 - [ ] Allow Periodic boundaries for the skyrmion number calculation
+- [ ] Add typing check
 
 # Citation
 
