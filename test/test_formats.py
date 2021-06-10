@@ -33,7 +33,7 @@ spins_ref = np.array([[0.0, 0.0, 1.0],
 
 
 def test_all_formats():
-    for omf_file in glob.glob('test_*.omf'):
+    for omf_file in glob.glob('omfs_formats/test_*.omf'):
         print(omf_file)
 
         data = oommfpy.MagnetisationData(omf_file)
