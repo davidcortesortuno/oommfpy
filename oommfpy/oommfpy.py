@@ -5,6 +5,61 @@ import struct
 
 # -----------------------------------------------------------------------------
 
+def loadtxt_iter(txtfile, ncols, delimiter=None, skiprows=0, dtype=np.float64,
+                 usecols=None, comment='#'):
+    """Reads a simply formatted text file using Numpy's `fromiter` function.
+    This function should perform faster than the `loadtxt` function.
+
+    Parameters
+    ----------
+    txtfile
+        Path to text file
+    ncols
+        Number of columns (not detected automatically)
+    delimiter
+        Passed to `split(delimiter=)` in every line of the text file.
+        `None` means any number of white spaces
+    skiprows
+        Skip `skiprows` initial lines
+    dtype
+
+    Notes
+    -----
+    Based on N. Schlomer function at:
+
+    https://stackoverflow.com/questions/18259393/numpy-loading-csv-too-slow-compared-to-matlab
+
+    and J. Kington at
+
+    https://stackoverflow.com/questions/8956832/python-out-of-memory-on-large-csv-file-numpy
+    """
+    def iter_func():
+        with open(txtfile, 'r') as infile:
+            for _ in range(skiprows):
+                next(infile)
+
+            for line in infile:
+                if line.startswith(comment):
+                    continue
+                # Might not be necessary to strip characters at start and end:
+                line = line.strip().split(delimiter)
+                # line = line.split(delimiter)
+                # As a general solution we can also use regex:
+                # re.split(" +", line)
+                for item in line:
+                    yield dtype(item)
+
+    data = np.fromiter(iter_func(), dtype=dtype).flatten()
+
+    if usecols is None:
+        COLS = np.arange(ncols)
+    data = data.reshape((-1, ncols))[:, COLS]
+
+    return data
+
+
+# -----------------------------------------------------------------------------
+
 
 class FieldData(object):
     """
@@ -191,12 +246,11 @@ class FieldData(object):
                     data = data[1:field_dim * n_sites + 1].reshape(-1, field_dim)
 
         else:
-            # NOTE: more efficient is to use Pandas csv reader but this
-            # requires adding an extra dependency to this code
             if self.meshtype == 'irregular':
-                data = np.loadtxt(self.input_file, usecols=[3, 4, 5])
+                data = loadtxt_iter(self.input_file, ncols=6, comment='#',
+                                    usecols=[3, 4, 5])
             elif self.meshtype == 'rectangular':
-                data = np.loadtxt(self.input_file)
+                data = loadtxt_iter(self.input_file, ncols=3, comment='#')
 
         return data
 
