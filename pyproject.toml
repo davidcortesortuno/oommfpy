@@ -4,8 +4,10 @@
 name = "oommfpy"
 version = "1.0b"
 description = "Minimal Python lib to process OOMMF format output files"
-authors = ["David Cortés-Ortuño <https://github.com/davidcortesortuno>"]
+authors = ["David Cortés-Ortuño <d.i.cortes@uu.nl>"]
 license = "BSD 2-Clause"
+readme = "README.md"
+keywords = ["oommf", "omf", "python"]
 build = 'build.py'
 
 [tool.poetry.dependencies]

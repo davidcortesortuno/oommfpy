@@ -30,7 +30,16 @@ Highlights:
 
 ## Install
 
-A `setup.py` file is provided to install this library using `pip`
+The easiest is to use `pip` or `poetry` to install the package from
+[PyPI](https://pypi.org/project/oommfpy)
+
+    pip install oommfpy
+
+The Github address can also be directly used to install the package via `pip`
+
+    pip install git+https://github.com/davidcortesortuno/oommfpy
+
+Alternatively, a `setup.py` file is provided to install this library
 
     git clone https://github.com/davidcortesortuno/oommfpy
     cd oommfpy
@@ -41,6 +50,7 @@ corresponding `bin` directory and can be called from the command line.
 
 A C library is built with the installation process, thus the setup file tries
 to install Cython if is not present in the system.
+
 
 ## Documentation
 
@@ -71,6 +81,7 @@ details.
 - [ ] Print `z` coordinate when computing sk number
 - [ ] Allow Periodic boundaries for the skyrmion number calculation
 - [ ] Add typing check
+- [ ] Support for multiple OS
 
 # Citation
 
