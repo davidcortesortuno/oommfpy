@@ -1,4 +1,6 @@
-import os
+# import os
+from distutils.command.build_ext import build_ext
+from distutils.core import Extension
 
 # See if Cython is installed
 try:
@@ -11,9 +13,6 @@ except ImportError:
         pass
 # Cython is installed. Compile
 else:
-    from setuptools import Extension
-    from distutils.command.build_ext import build_ext
-
     # This function will be executed in setup.py:
     def build(setup_kwargs):
         # The file you want to compile
