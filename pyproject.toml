@@ -2,7 +2,7 @@
 # We need it here to compile the Cython modules
 [tool.poetry]
 name = "oommfpy"
-version = "1.0a"
+version = "1.0b"
 description = "Minimal Python lib to process OOMMF format output files"
 authors = ["David Cortés-Ortuño <https://github.com/davidcortesortuno>"]
 license = "BSD 2-Clause"
