@@ -2,12 +2,13 @@
 # We need it here to compile the Cython modules
 [tool.poetry]
 name = "oommfpy"
-version = "1.0b"
+version = "1.1b"
 description = "Minimal Python lib to process OOMMF format output files"
 authors = ["David Cortés-Ortuño <d.i.cortes@uu.nl>"]
-license = "BSD 2-Clause"
+license = "BSD-2-Clause"
 readme = "README.md"
 keywords = ["oommf", "omf", "python"]
+repository = "https://github.com/davidcortesortuno/oommfpy"
 build = 'build.py'
 
 [tool.poetry.dependencies]
