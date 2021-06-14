@@ -1,3 +1,5 @@
+# Adding build.py is an experimental feature, so it might change in future
+# We need it here to compile the Cython modules
 [tool.poetry]
 name = "oommfpy"
 version = "1.0"
@@ -21,5 +23,5 @@ plot_omf = "oommfpy.tools.plot_slices:plot_omf_slices_cli"
 omf2vtk = "oommfpy.tools.omf2vtk:omf2vtk_cli"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["setuptools", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
