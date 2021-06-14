@@ -4,9 +4,10 @@ version = "1.0"
 description = "Minimal Python lib to process OOMMF format output files"
 authors = ["David Cortés-Ortuño <https://github.com/davidcortesortuno>"]
 license = "BSD 2-Clause"
+build = 'build.py'
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8,<3.10"
 Cython = "^0.29.23"
 numpy = "^1.20.3"
 click = "^7.1"
@@ -14,6 +15,10 @@ matplotlib = "^3.3.4"
 scipy = "^1.6.3"
 
 [tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
+plot_omf = "oommfpy.tools.plot_slices:plot_omf_slices_cli"
+omf2vtk = "oommfpy.tools.omf2vtk:omf2vtk_cli"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
