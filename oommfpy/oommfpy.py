@@ -2,12 +2,15 @@ import numpy as np
 import re
 import struct
 from pathlib import Path
+from collections import namedtuple
 # Many of these are simplified in Python 3.9:
 from typing import Union
 from typing import Optional
 from typing import Any
 from typing import Sequence
 from typing import Literal
+from typing import Dict
+from typing import List
 import numpy.typing as npt
 
 
@@ -83,17 +86,27 @@ def loadtxt_iter(txtfile: str,
 
 class FieldData(object):
     """
-    Class to extract the field data from an OOMMF file (omf, ohf, ehf) with
-    a regular mesh grid (coordinates are generated in this class)
+    Class to extract the field data from an OOMMF output file (omf, ohf, ehf)
+    which is ordered in a mesh grid. If the grid is regular, coordinates are
+    generated in this class.
     """
 
     def __init__(self, input_file: Union[str, Path]):
 
         self.input_file = input_file
-        self._data_format = None
+
+        # Values from header of file:
+        self.dx = self.dy = self.dz = None
+        self.xmin = self.ymin = self.zmin = None
+        self.xmax = self.ymax = self.zmax = None
+        self.valuedim = None
+        self.xbase = self.ybase = self.zbase = None
+        self.nx = self.ny = self.nz = None
+        self.data_format = ''
+
         self.read_header()
 
-    def read_header(self):
+    def read_header(self) -> None:
         """
         Read header from file and store values in self. variables
         """
@@ -110,57 +123,64 @@ class FieldData(object):
             line = _file.readline().decode()
         data += line
 
-        attrs = {'xstepsize': 'dx',  'ystepsize': 'dy', 'zstepsize': 'dz',
-                 # 'xbase': 'xbase',  'ybase': 'ybase', 'zbase': 'zbase',
-                 'xmin': 'xmin', 'ymin': 'ymin', 'zmin': 'zmin',
-                 'xmax': 'xmax', 'ymax': 'ymax', 'zmax': 'zmax',
-                 'valuedim': 'valuedim',
-                 'xnodes': 'nx', 'ynodes': 'ny', 'znodes': 'nz'
-                 }
+        HeaderDict = {'xstepsize': 'dx',  'ystepsize': 'dy', 'zstepsize': 'dz',
+                      # 'xbase': 'xbase',  'ybase': 'ybase', 'zbase': 'zbase',
+                      'xmin': 'xmin', 'ymin': 'ymin', 'zmin': 'zmin',
+                      'xmax': 'xmax', 'ymax': 'ymax', 'zmax': 'zmax',
+                      'valuedim': 'valuedim',
+                      'xnodes': 'nx', 'ynodes': 'ny', 'znodes': 'nz'}
+
+        # data_dict: Dict[str, Any] = {}
 
         # Regex search the attributes. Stepsizes are specified as dx, dy, dz
-        for k in attrs.keys():
+        for k in HeaderDict.keys():
 
+            num_val = re.search(r'(?<={}: )[0-9\-\.e]+'.format(k), data)
+
+            # .................................................................
             # Only OVF 2.0 file format allows arbitrary number of dimensions
             # of the field data. Otherwise just set it to default 3
             if k == 'valuedim':
-                num_val = re.search(r'(?<={}: )[0-9\-\.e]+'.format(k), data)
-                if num_val:
-                    setattr(self, attrs[k], int(num_val.group(0)))
+                if num_val is None:
+                    setattr(self, HeaderDict[k], 3)
                 else:
-                    setattr(self, attrs[k], 3)
-                continue
+                    setattr(self, HeaderDict[k], int(num_val.group(0)))
 
             # .................................................................
             # Rectangular grids specify the number of nodes/mesh-points in
             # every direction
-            if k == 'xnodes' or k == 'ynodes' or k == 'znodes':
-                try:
-                    num_val = re.search(r'(?<={}: )[0-9\-\.e]+'.format(k), data)
-                    setattr(self, attrs[k], int(num_val.group(0)))
-                except AttributeError:  # if regex search fails
-                    setattr(self, attrs[k], None)
-                continue
+            elif k == 'xnodes' or k == 'ynodes' or k == 'znodes':
+                if num_val is None:
+                    setattr(self, HeaderDict[k], None)
+                else:
+                    setattr(self, HeaderDict[k], int(num_val.group(0)))
             # .................................................................
 
-            num_val = float(re.search(r'(?<={}: )[0-9\-\.e]+'.format(k),
-                            data).group(0))
-            setattr(self, attrs[k], num_val)
+            else:
+                if num_val is None:
+                    raise Exception(f'Unable to find value for {k}')
+                else:
+                    setattr(self, HeaderDict[k], float(num_val.group(0)))
 
         # Add data format from last line
-        setattr(self, '_data_format', re.search(r'(?<=Begin: Data ).+',
-                                                data).group(0))
+        datafmt = re.search(r'(?<=Begin: Data ).+', data)
+        if datafmt is None:
+            raise Exception('Unable to find data format')
+        else:
+            setattr(self, 'data_format', datafmt.group(0))
 
         # Compute number of elements in each direction
-        if not self.nx:  # assuming if nx is None, then ny and nz also are None
-            self.nx = round((self.xmax - self.xmin) / self.dx)
-            self.ny = round((self.ymax - self.ymin) / self.dy)
-            self.nz = round((self.zmax - self.zmin) / self.dz)
+        # Assuming if nx is None, then ny and nz also are None
+        if self.nx is None:
+            for c in ['x', 'y', 'z']:
+                # Compute nx = (xmax - xmin) / dx :
+                diff = (getattr(self, f'{c}max') - getattr(self, f'{c}min'))
+                setattr(self, f'n{c}', round(diff / getattr(self, f'd{c}')))
 
         # Obtain binary data type from header and check the dtype
         # to use it in Numpy's methods
         # Based on: https://github.com/deparkes/OOMMFTools/blob/master/oommftools/core/oommfdecode.py
-        if self._data_format == 'Binary 4':
+        if self.data_format == 'Binary 4':
             flag = _file.read(4)
             if struct.unpack('>f', flag)[0] == 1234567.0:
                 # print(struct.unpack('>f', flag)[0])
@@ -174,7 +194,7 @@ class FieldData(object):
 
         # In this case we could use _dtype = '>f8' or '<f8' but this does not
         # work with struct.unpack, which requires a double(?) >d or <d
-        elif self._data_format == 'Binary 8':
+        elif self.data_format == 'Binary 8':
             flag = _file.read(8)
             if struct.unpack('>d', flag)[0] == 123456789012345.0:
                 self._dtype = '>f8'
@@ -188,30 +208,37 @@ class FieldData(object):
         # Check mesh type to calculate the base positions ---------------------
 
         # Get the first 3 values if using binary data
-        if self._data_format.startswith('Binary'):
+        first_num_data: List[float]
+        if self.data_format.startswith('Binary'):
             first_num_data = []
             for i in range(3):
                 # the data using the number of binary bits
-                num_data = _file.read(int(self._data_format[-1]))
+                num_data = _file.read(int(self.data_format[-1]))
                 # Decode the data using the dtype without binary bits number(?)
                 first_num_data.append(struct.unpack(self._dtype_st,
                                                     num_data)[0])
 
         # else read the next line after: Begin: Data with the coords and spins
         else:
-            first_num_data = _file.readline().decode()
             # this should guess data is separated by any number of white spaces
-            first_num_data = first_num_data[1:].split()
+            first_num_data = [float(v) for v in
+                              _file.readline().decode()[1:].split()]
 
-        self.meshtype = re.search('(?<=meshtype: )[a-z]+', data).group(0)
+        meshtype = re.search('(?<=meshtype: )[a-z]+', data)
+        if meshtype is None:
+            raise Exception('Cannot find meshtype')
+        else:
+            self.meshtype = meshtype.group(0)
 
         for i, k in enumerate(['xbase', 'ybase', 'zbase']):
             if self.meshtype == 'irregular':
-                setattr(self, k, float(first_num_data[i]))
+                setattr(self, k, first_num_data[i])
             elif self.meshtype == 'rectangular':
-                num_val = float(re.search(r'(?<={}: )[0-9\-\.e]+'.format(k),
-                                data).group(0))
-                setattr(self, k, num_val)
+                num_val = re.search(r'(?<={}: )[0-9\-\.e]+'.format(k), data)
+                if num_val is None:
+                    raise Exception('Cannot set base mesh values')
+                else:
+                    setattr(self, k, float(num_val.group(0)))
         # ---------------------------------------------------------------------
 
         _file.close()
@@ -224,10 +251,10 @@ class FieldData(object):
 
         """
 
-        if self._data_format is None:
+        if self.data_format is None:
             raise Exception('File data format not identified')
 
-        if self._data_format == 'Binary 4' or self._data_format == 'Binary 8':
+        if self.data_format == 'Binary 4' or self.data_format == 'Binary 8':
 
             with open(self.input_file, 'rb') as _file:
                 # First read the initial comments until the data begins
