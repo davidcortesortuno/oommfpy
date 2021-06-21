@@ -16,7 +16,7 @@ import numpy.typing as npt
 
 # -----------------------------------------------------------------------------
 
-def loadtxt_iter(txtfile: str,
+def loadtxt_iter(txtfile: Union[str, Path],
                  ncols: int,
                  delimiter: Optional[str] = None,
                  skiprows: int = 0,
@@ -89,6 +89,12 @@ class FieldData(object):
     Class to extract the field data from an OOMMF output file (omf, ohf, ehf)
     which is ordered in a mesh grid. If the grid is regular, coordinates are
     generated in this class.
+
+    Methods
+    -------
+    read_header
+    generate_field
+    generate_coordinates
     """
 
     def __init__(self, input_file: Union[str, Path]):
@@ -96,19 +102,25 @@ class FieldData(object):
         self.input_file = input_file
 
         # Values from header of file:
-        self.dx = self.dy = self.dz = None
-        self.xmin = self.ymin = self.zmin = None
-        self.xmax = self.ymax = self.zmax = None
-        self.valuedim = None
-        self.xbase = self.ybase = self.zbase = None
-        self.nx = self.ny = self.nz = None
+        self.dx = self.dy = self.dz = 0.0
+        self.xmin = self.ymin = self.zmin = 0.0
+        self.xmax = self.ymax = self.zmax = 0.0
+        self.valuedim = 0
+        self.xbase = self.ybase = self.zbase = 0.0
+        self.nx = self.ny = self.nz = 0
         self.data_format = ''
 
         self.read_header()
 
     def read_header(self) -> None:
         """
-        Read header from file and store values in self. variables
+        Read header from file and store values as class variables. Some of the
+        original names are simplified:
+
+            [c]stepsize -> [c]x
+            [c]nodes    -> n[c]
+
+        with [c] = x, y, z
         """
 
         # Generate a single string with the whole header up to the line where
@@ -246,9 +258,8 @@ class FieldData(object):
     def _generate_data(self) -> npt.ArrayLike:
         """
         If the data is in binary format, we decode the information using
-        Numpy's `fromfile` function. Otherwise just load the text file
-        with Numpy's `loadtxt`
-
+        Numpy's `fromfile` function. Otherwise load the text file
+        using `loadtxt_iter`
         """
 
         if self.data_format is None:
@@ -280,7 +291,7 @@ class FieldData(object):
                 n_sites = self.nx * self.ny * self.nz
                 # Discard the first element (flag) and discard the final data,
                 # which is the final comment ending the data file (the binary
-                # decoding of numpy transforms this comment in non-sense numbers)
+                # decoding of numpy transforms this comment in non-sense nums)
                 # Finally reshape to have columns: fx fy fz
                 if self.meshtype == 'irregular':
                     # Number of dimensions of data: coordinates + field
@@ -371,11 +382,9 @@ class FieldData(object):
 
 class MagnetisationData(FieldData):
     """
-    Class to extract the magnetisation data from an OOMMF omf file with
-    a regular mesh grid (coordinates are generated in this class). The
-    magnetisation field is normalised when the self.generate_field() method
-    is used
-
+    Class to extract the magnetisation data from an OOMMF omf file. The
+    magnetisation field is normalised when the generate_field() method is
+    called.
     This class includes a method to compute the skyrmion number
     """
 
@@ -468,12 +477,14 @@ class MagnetisationData(FieldData):
         when they are within the sample.
 
         Parameters
-
-        plane       :: 'xy', 'xz' or 'yz'
-        index       :: any integer from 0 up to len(xs) or len(ys) or len(zs)
-                       depending on the slice plane
-        method      :: 'finite_differences' or 'spin_lattice'
-
+        ----------
+        plane       
+            'xy', 'xz' or 'yz'
+        index 
+            any integer from 0 up to len(xs) or len(ys) or len(zs) depending on
+            the slice plane
+        method
+            'finite_differences' or 'spin_lattice'
         """
 
         # Spin data in a grid, dimensions are: z, y, x, 3
