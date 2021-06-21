@@ -1,12 +1,26 @@
 import numpy as np
 import re
 import struct
+from pathlib import Path
+# Many of these are simplified in Python 3.9:
+from typing import Union
+from typing import Optional
+from typing import Any
+from typing import Sequence
+from typing import Literal
+import numpy.typing as npt
 
 
 # -----------------------------------------------------------------------------
 
-def loadtxt_iter(txtfile, ncols, delimiter=None, skiprows=0, dtype=np.float64,
-                 usecols=None, comment='#'):
+def loadtxt_iter(txtfile: str,
+                 ncols: int,
+                 delimiter: Optional[str] = None,
+                 skiprows: int = 0,
+                 dtype: npt.DTypeLike = np.float64,
+                 usecols: Optional[Sequence[int]] = None,
+                 comment: str = '#'
+                 ) -> npt.ArrayLike:
     """Reads a simply formatted text file using Numpy's `fromiter` function.
     This function should perform faster than the `loadtxt` function.
 
@@ -22,6 +36,10 @@ def loadtxt_iter(txtfile, ncols, delimiter=None, skiprows=0, dtype=np.float64,
     skiprows
         Skip `skiprows` initial lines
     dtype
+
+    Returns
+    -------
+    Numpy array with the data
 
     Notes
     -----
@@ -69,7 +87,7 @@ class FieldData(object):
     a regular mesh grid (coordinates are generated in this class)
     """
 
-    def __init__(self, input_file):
+    def __init__(self, input_file: Union[str, Path]):
 
         self.input_file = input_file
         self._data_format = None
@@ -198,7 +216,7 @@ class FieldData(object):
 
         _file.close()
 
-    def _generate_data(self):
+    def _generate_data(self) -> npt.ArrayLike:
         """
         If the data is in binary format, we decode the information using
         Numpy's `fromfile` function. Otherwise just load the text file
@@ -256,7 +274,7 @@ class FieldData(object):
 
         return data
 
-    def generate_field(self, normalise_field=False):
+    def generate_field(self, normalise_field: bool = False) -> None:
         """
         Read the field data: any scalar or vector field assuming the data from
                              the field is always Nx3 in size
@@ -279,7 +297,7 @@ class FieldData(object):
             self.nfield_y[_filter] /= self.field_norm[_filter]
             self.nfield_z[_filter] /= self.field_norm[_filter]
 
-    def generate_coordinates(self):
+    def generate_coordinates(self) -> None:
         """
         Create the self.x, self.y, self.z arrays with the coordinates of the
         mesh sites. Unique values of the coordinates are stored in the
@@ -321,7 +339,6 @@ class FieldData(object):
                      )
 
 
-
 # -----------------------------------------------------------------------------
 
 
@@ -335,11 +352,11 @@ class MagnetisationData(FieldData):
     This class includes a method to compute the skyrmion number
     """
 
-    def __init__(self, input_file):
+    def __init__(self, input_file: Union[str, Path]):
 
         super(MagnetisationData, self).__init__(input_file)
 
-    def generate_field(self):
+    def generate_field(self) -> None:
         """
         Compute the magnetisation field data from the given input file
 
@@ -368,9 +385,14 @@ class MagnetisationData(FieldData):
         self.my = self.field_y
         self.mz = self.field_z
 
-    # TODO: add typing for function arguments
-    def compute_sk_number(self, index=0, plane='xy',
-                          method='finite_differences'):
+    __PlaneOptions = Literal['xy', 'xz', 'yz']
+    __MethodOptions = Literal['finite_differences', 'spin_lattice']
+
+    def compute_sk_number(self,
+                          index: int = 0,
+                          plane: __PlaneOptions = 'xy',
+                          method: __MethodOptions = 'finite_differences'
+                          ) -> float:
         r"""
 
         Compute the skyrmion number S for a two dimensional layer. To do this,
@@ -592,7 +614,7 @@ class OOMMFODTReader(object):
         total_energy = data['Oxs_CGEvolve::Total energy']
     """
 
-    def __init__(self, input_file):
+    def __init__(self, input_file: Union[str, Path]):
 
         self.input_file = input_file
         self.read_header()
@@ -620,7 +642,7 @@ class OOMMFODTReader(object):
             h = h.strip('}')
             self.columns[h] = i
 
-    def __getitem__(self, column_name):
+    def __getitem__(self, column_name: str) -> npt.ArrayLike:
         """
         Returns the corresponding column from the name when calling
         an element of this Class through []
