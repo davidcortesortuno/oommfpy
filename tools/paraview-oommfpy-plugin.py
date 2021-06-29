@@ -67,7 +67,6 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
     #         self.Modified()
 
     def RequestData(self, request, inInfoVec, outInfoVec):
-        # output = dsa.WrapDataObject(vtkRectilinearGrid.GetData(outInfoVec))
         output = vtkRectilinearGrid.GetData(outInfoVec)
         output.Initialize()
 
@@ -82,26 +81,29 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
 
         # points, cells = mesh.coordinates, mesh.cells
         output.SetDimensions(mesh.nx + 1, mesh.ny + 1, mesh.nz + 1)
+        output.SetExtent(0, mesh.nx, 0, mesh.ny, 0, mesh.nz)
 
-        # output.SetXCoordinates(mesh.grid[0])
-        # output.SetYCoordinates(mesh.grid[1])
-        # output.SetZCoordinates(mesh.grid[2])
-
-        output.SetXCoordinates(numpy_support.numpy_to_vtk(mesh.grid[0]))
-        output.SetYCoordinates(numpy_support.numpy_to_vtk(mesh.grid[1]))
-        output.SetZCoordinates(numpy_support.numpy_to_vtk(mesh.grid[2]))
+        # Scale the coordinates in nm (somehow small values do not render
+        # well in Paraview)
+        output.SetXCoordinates(numpy_support.numpy_to_vtk(mesh.grid[0] * 1e9))
+        output.SetYCoordinates(numpy_support.numpy_to_vtk(mesh.grid[1] * 1e9))
+        output.SetZCoordinates(numpy_support.numpy_to_vtk(mesh.grid[2] * 1e9))
 
         # Cell data
-        # output.CellData.append(mesh.field.reshape(-1), 'M')
+        # Spin directions
         spinData = numpy_support.numpy_to_vtk(mesh.field.reshape(-1))
         spinData.SetNumberOfComponents(3)
         spinData.SetName('spin')
         output.GetCellData().AddArray(spinData)
 
+        # Magnetisation
         magData = numpy_support.numpy_to_vtk(mesh.field_norm)
         magData.SetNumberOfComponents(1)
         magData.SetName('M')
         output.GetCellData().AddArray(magData)
+
+        # TODO: - HSL colours for in plane orientation?
+        #       - Skyrmion number density
 
         return 1
 
