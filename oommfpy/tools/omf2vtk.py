@@ -11,7 +11,8 @@ import timeit
 
 def omf2vtk(input_omf_file,
             output_vtk_file=None,
-            output_format='binary'
+            output_format='binary',
+            spatial_scale=1e9
             ):
     """
     Convert a given input_omf_file into a VTK file in binary format
@@ -34,7 +35,9 @@ def omf2vtk(input_omf_file,
         output_vtk_file += '.vtk'
 
     # Save VTK in binary format with Ms and m data
-    clib.WriteVTK_RectilinearGrid_C(data.grid[0], data.grid[1], data.grid[2],
+    clib.WriteVTK_RectilinearGrid_C(data.grid[0] * spatial_scale,
+                                    data.grid[1] * spatial_scale,
+                                    data.grid[2] * spatial_scale,
                                     data.field.reshape(-1),
                                     data.field_norm,
                                     data.nx, data.ny, data.nz,
@@ -42,7 +45,8 @@ def omf2vtk(input_omf_file,
 
 
 def omf2vtk_batch(input_omfs,
-                  output_format='binary'
+                  output_format='binary',
+                  spatial_scale=1e9
                   ):
     """
     Convert all OMF files (or with a different extension) into VTK files
@@ -87,9 +91,9 @@ def omf2vtk_batch(input_omfs,
         data.input_file = FILE
         data.generate_field()
 
-        clib.WriteVTK_RectilinearGrid_C(data.grid[0],
-                                        data.grid[1],
-                                        data.grid[2],
+        clib.WriteVTK_RectilinearGrid_C(data.grid[0] * spatial_scale,
+                                        data.grid[1] * spatial_scale,
+                                        data.grid[2] * spatial_scale,
                                         data.field.reshape(-1),
                                         data.field_norm,
                                         data.nx, data.ny, data.nz,
@@ -111,13 +115,17 @@ def omf2vtk_batch(input_omfs,
               help='Output VTK file name', required=False)
 @click.option('-of', '--output_format', type=str, default='binary',
               help='Output VTK file name')
-def omf2vtk_cli(input_path, output_vtk_file, output_format):
+@click.option('-ss', '--spatial_scale', type=float, default=1e9,
+              help='Output VTK file name')
+def omf2vtk_cli(input_path, output_vtk_file, output_format, spatial_scale):
 
     if os.path.isdir(input_path) or ('*' in input_path):
-        omf2vtk_batch(input_path, output_format=output_format)
+        omf2vtk_batch(input_path, output_format=output_format,
+                      spatial_scale=spatial_scale)
 
     elif os.path.isfile(input_path):
-        omf2vtk(input_path, output_vtk_file, output_format=output_format)
+        omf2vtk(input_path, output_vtk_file, output_format=output_format,
+                spatial_scale=spatial_scale)
 
     else:
         raise Exception('No valid input path')
