@@ -27,6 +27,7 @@ Highlights:
 - Fast reading of `omf` files in binary format (using Numpy's `fromfile`)
 - Minimal and super fast tool to convert `omf` files to VTK format
 - Plot functions
+- Early support for Paraview plugin: read `omf` files directly!
 
 ## Install
 
@@ -51,6 +52,28 @@ corresponding `bin` directory and can be called from the command line.
 A C library is built with the installation process, thus the setup file tries
 to install Cython if is not present in the system.
 
+### Paraview plugin
+
+A first version of a reader for Paraview is added in this last version. For now
+the installation is a bit of a hack:
+
+- After installing the `oommfpy` library, locate the `oommfpy` folder from
+  the`site-packages` directory
+
+- Download the latest version of Paraview with Python > 3.8 support
+
+- Copy the `oommfpy` directory into the Paraview Python `site-packages` folder.
+  For example, for Paraview 5.9.0 installed in the `home` folder:
+
+  ```
+  cp -r oommfpy $HOME/ParaView-5.9.0-MPI-Linux-Python3.8-64bit/lib/python3.8/site-packages/
+  ```
+
+- Open Paraview and go to `Tools -> Manage Plugins -> Load New` and select the
+  Python file in the `tools/` folder of `oommfpy` (you can clone the
+  repository)
+
+- Now you can open any `omf` file without converting to VTK!
 
 ## Documentation
 

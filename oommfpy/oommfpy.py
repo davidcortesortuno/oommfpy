@@ -11,7 +11,7 @@ from typing import Sequence
 from typing import Literal
 from typing import Dict
 from typing import List
-import numpy.typing as npt
+# import numpy.typing as npt
 
 
 # -----------------------------------------------------------------------------
@@ -20,10 +20,10 @@ def loadtxt_iter(txtfile: Union[str, Path],
                  ncols: int,
                  delimiter: Optional[str] = None,
                  skiprows: int = 0,
-                 dtype: npt.DTypeLike = np.float64,
+                 dtype: Any = np.float64,  # npt.DTypeLike = np.float64,
                  usecols: Optional[Sequence[int]] = None,
                  comment: str = '#'
-                 ) -> npt.ArrayLike:
+                 ) -> Any:  # npt.ArrayLike:
     """Reads a simply formatted text file using Numpy's `fromiter` function.
     This function should perform faster than the `loadtxt` function.
 
@@ -255,7 +255,7 @@ class FieldData(object):
 
         _file.close()
 
-    def _generate_data(self) -> npt.ArrayLike:
+    def _generate_data(self) -> Any:  # npt.ArrayLike:
         """
         If the data is in binary format, we decode the information using
         Numpy's `fromfile` function. Otherwise load the text file
@@ -680,7 +680,7 @@ class OOMMFODTReader(object):
             h = h.strip('}')
             self.columns[h] = i
 
-    def __getitem__(self, column_name: str) -> npt.ArrayLike:
+    def __getitem__(self, column_name: str) -> Any:  # npt.ArrayLike:
         """
         Returns the corresponding column from the name when calling
         an element of this Class through []
