@@ -18,6 +18,7 @@ from typing import List
 
 def loadtxt_iter(txtfile: Union[str, Path],
                  ncols: int,
+                 fromiter_count: int = -1,
                  delimiter: Optional[str] = None,
                  skiprows: int = 0,
                  dtype: Any = np.float64,  # npt.DTypeLike = np.float64,
@@ -33,6 +34,8 @@ def loadtxt_iter(txtfile: Union[str, Path],
         Path to text file
     ncols
         Number of columns (not detected automatically)
+    fromiter_count
+        If passed, it might make numpy's fromiter more efficient (see doc)
     delimiter
         Passed to `split(delimiter=)` in every line of the text file.
         `None` means any number of white spaces
@@ -70,7 +73,8 @@ def loadtxt_iter(txtfile: Union[str, Path],
                 for item in line:
                     yield dtype(item)
 
-    data = np.fromiter(iter_func(), dtype=dtype).flatten()
+    data = np.fromiter(iter_func(), dtype=dtype,
+                       count=fromiter_count).flatten()
 
     if usecols is None:
         COLS = np.arange(ncols)
@@ -305,10 +309,13 @@ class FieldData(object):
 
         else:
             if self.meshtype == 'irregular':
+                count = 6 * self.nx * self.ny * self.nz
                 data = loadtxt_iter(self.input_file, ncols=6, comment='#',
-                                    usecols=[3, 4, 5])
+                                    usecols=[3, 4, 5], fromiter_count=count)
             elif self.meshtype == 'rectangular':
-                data = loadtxt_iter(self.input_file, ncols=3, comment='#')
+                count = 3 * self.nx * self.ny * self.nz
+                data = loadtxt_iter(self.input_file, ncols=3, comment='#',
+                                    fromiter_count=count)
 
         return data
 
@@ -478,9 +485,9 @@ class MagnetisationData(FieldData):
 
         Parameters
         ----------
-        plane       
+        plane
             'xy', 'xz' or 'yz'
-        index 
+        index
             any integer from 0 up to len(xs) or len(ys) or len(zs) depending on
             the slice plane
         method

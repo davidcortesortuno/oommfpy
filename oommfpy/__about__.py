@@ -16,7 +16,7 @@ __summary__ = (
 )
 __uri__ = "https://github.com/davidcortesortuno/oommfpy"
 
-__version__ = "1.1b"
+__version__ = "1.2"
 
 __author__ = "David Cortés-Ortuño"
 __email__ = "d.i.cortes@uu.nl"
