@@ -21,6 +21,7 @@ scipy = "^1.6.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
+PyVTK = "^0.5.18"
 
 [tool.poetry.scripts]
 plot_omf = "oommfpy.tools.plot_slices:plot_omf_slices_cli"
