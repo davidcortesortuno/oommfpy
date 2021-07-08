@@ -1,5 +1,7 @@
 import oommfpy as omp
 import numpy as np
+from pathlib import Path
+
 
 def test_sknum_spin_lattice():
     """
@@ -18,7 +20,9 @@ def test_sknum_spin_lattice():
        (+x +z -y)  (-y -z +x)  (+x 0 0)  (+x 0 0)
     The zeros appear at the boundary (no material)
     """
-    data = omp.MagnetisationData('./test_top_charge.omf')
+    parent = Path(__file__).resolve().parent
+
+    data = omp.MagnetisationData(parent / './test_top_charge.omf')
     data.generate_field()
     sk_num = data.compute_sk_number(method='spin_lattice')
     print(data.sk_number)
