@@ -75,6 +75,7 @@ def test_vtk_writer():
     # Reading the VTK file and transorming the binary data to analyse it
 
 
+@pytest.mark.skip(reason="Needs update: create a large VTK file")
 def test_vtk_writer_speed():
     """
     Comparison of C backend with the old pyvtk interface
