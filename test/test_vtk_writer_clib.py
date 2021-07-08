@@ -7,6 +7,7 @@ import shutil
 import timeit
 import glob
 import pyvtk
+import pytest
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
 
