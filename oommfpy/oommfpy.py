@@ -307,6 +307,9 @@ class FieldData(object):
                     field_dim = self.valuedim
                     data = data[1:field_dim * n_sites + 1].reshape(-1, field_dim)
 
+            # Cast into array of doubles or np.float64
+            data = data.astype(np.double)
+
         else:
             if self.meshtype == 'irregular':
                 count = 6 * self.nx * self.ny * self.nz
@@ -317,6 +320,7 @@ class FieldData(object):
                 data = loadtxt_iter(self.input_file, ncols=3, comment='#',
                                     fromiter_count=count)
 
+        # Cast into double
         return data
 
     def generate_field(self, normalise_field: bool = False) -> None:
