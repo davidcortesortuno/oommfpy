@@ -4,6 +4,7 @@ import re
 import subprocess
 import shutil
 from pathlib import Path
+import pytest
 this_dir = Path(__file__).resolve().parent
 
 
@@ -43,6 +44,7 @@ def get_n(f):
     return int(re.search(r'(?<=n_)\d+(?=-Oxs)', str(f)).group(0))
 
 
+@pytest.mark.skip(reason="Requires better comparison / asserts")
 def test_sk_number_vs_mesh_discretisation():
     """
     Compute the sk number at the bottom of a disk with a skyrmion
