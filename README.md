@@ -1,5 +1,5 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2611194.svg)](https://doi.org/10.5281/zenodo.2611194)
-![GH Actions Test](https://github.com/davidcortesortuno/oommfpy/actions/workflows/manual-test.yml/badge.svg?branch=test_gh_actions)
+![GH Actions Test](https://github.com/davidcortesortuno/oommfpy/actions/workflows/manual-test.yml/badge.svg?)
 
 ```
    .+------+-------+-------+-------+-------+-------+-------+
