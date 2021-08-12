@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     branches: [ test_gh_actions ]
 
-jobs:
+distbuild:
   build:
     strategy:
       fail-fast: false
@@ -45,3 +45,38 @@ jobs:
           dist/*.whl
           dist/*.tar.gz
           dist/*.zip
+
+pypipublish:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.9]
+        poetry-version: [1.1.7]
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+  - name: Download build objects
+    uses: actions/download-artifact@v2
+    with:
+      name: poetry-dist-objects-macos-latest
+      name: poetry-dist-objects-ubuntu-latest
+      name: poetry-dist-objects-windows-latest
+
+  - name: Extract files
+    run: |
+      sudo apt-get install unzip
+      unzip poetry-dist-objects-macos-latest -d macos
+      unzip poetry-dist-objects-ubuntu-latest -d ubuntu
+      unzip poetry-dist-objects-windows-latest -d windows
+      mkdir dist
+      mv macos/*.whl dist/
+      mv windows/*.whl windows/
+      mv ubuntu/* dist/
+
+  - name: Publish distribution 📦 to Test PyPI
+    uses: pypa/gh-action-pypi-publish@master
+    with:
+      password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      repository_url: https://test.pypi.org/legacy/
