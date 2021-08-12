@@ -66,15 +66,10 @@ jobs:
     - name: Extract files
       run: |
         ls -R
-        sudo apt-get install unzip
-        unzip poetry_dist_objs -d ./
-        unzip poetry-dist-objects-macos-latest -d macos
-        unzip poetry-dist-objects-ubuntu-latest -d ubuntu
-        unzip poetry-dist-objects-windows-latest -d windows
         mkdir dist
-        mv macos/*.whl dist/
-        mv windows/*.whl windows/
-        mv ubuntu/* dist/
+        mv poetry-dist-objects-macos-latest/*.whl dist/
+        mv poetry-dist-objects-windows-latest/*.whl dist/
+        mv poetry-dist-objects-ubuntu-latest/* dist/
 
     - name: Publish distribution 📦 to Test PyPI
       uses: pypa/gh-action-pypi-publish@master
