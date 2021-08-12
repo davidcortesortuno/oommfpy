@@ -1,4 +1,4 @@
-name: OOMMFPy manual test workflow
+name: OOMMFPy manual build
 
 on:
   workflow_dispatch:
@@ -40,7 +40,8 @@ jobs:
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v2.2.4
       with:
-        name: python dist objects
+        name: poetry-dist-objects-${{ matrix.os }}
         path: |
           dist/*.whl
           dist/*.tar.gz
+          dist/*.zip
