@@ -60,17 +60,12 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Download build objects
+    - name: Download all build objects (artifacts)
       uses: actions/download-artifact@v2
-      with:
-        name: poetry_dist_objs
-        path: |
-          poetry-dist-objects-macos-latest
-          poetry-dist-objects-ubuntu-latest
-          poetry-dist-objects-windows-latest
 
     - name: Extract files
       run: |
+        ls -R
         sudo apt-get install unzip
         unzip poetry_dist_objs -d ./
         unzip poetry-dist-objects-macos-latest -d macos
