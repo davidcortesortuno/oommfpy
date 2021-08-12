@@ -64,9 +64,10 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: poetry_dist_objs
-        path: poetry-dist-objects-macos-latest
-        path: poetry-dist-objects-ubuntu-latest
-        path: poetry-dist-objects-windows-latest
+        path: |
+          poetry-dist-objects-macos-latest
+          poetry-dist-objects-ubuntu-latest
+          poetry-dist-objects-windows-latest
 
     - name: Extract files
       run: |
