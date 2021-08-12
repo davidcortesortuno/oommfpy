@@ -8,80 +8,78 @@ jobs:
 
   build_packages:
     name: Building wheels and main package
-    build:
-      strategy:
-        fail-fast: false
-        matrix:
-          python-version: [3.8, 3.9]
-          poetry-version: [1.1.7]
-          os: [ubuntu-latest, windows-latest, macos-latest]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.8, 3.9]
+        poetry-version: [1.1.7]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
-      runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
-      steps:
-      - uses: actions/checkout@v2
+    steps:
+    - uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Install pip and poetry ${{ matrix.poetry-version }}
-        run: |
-          python -m ensurepip
-          python -m pip install --upgrade pip
-          python -m pip install poetry==${{ matrix.poetry-version }}
+    - name: Install pip and poetry ${{ matrix.poetry-version }}
+      run: |
+        python -m ensurepip
+        python -m pip install --upgrade pip
+        python -m pip install poetry==${{ matrix.poetry-version }}
 
-      - name: Install dependencies
-        shell: bash
-        run: python -m poetry install
+    - name: Install dependencies
+      shell: bash
+      run: python -m poetry install
 
-      - name: Build with Poetry
-        run: |
-          python -m poetry build
+    - name: Build with Poetry
+      run: |
+        python -m poetry build
 
-      - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: poetry-dist-objects-${{ matrix.os }}
-          path: |
-            dist/*.whl
-            dist/*.tar.gz
-            dist/*.zip
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: poetry-dist-objects-${{ matrix.os }}
+        path: |
+          dist/*.whl
+          dist/*.tar.gz
+          dist/*.zip
 
   pypipublish:
     needs: build_packages
     name: Publish to PyPI
-    build:
-      strategy:
-        fail-fast: false
-        matrix:
-          python-version: [3.9]
-          poetry-version: [1.1.7]
-          os: [ubuntu-latest]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.9]
+        poetry-version: [1.1.7]
+        os: [ubuntu-latest]
 
-      runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
-    - name: Download build objects
-      uses: actions/download-artifact@v2
-      with:
-        name: poetry-dist-objects-macos-latest
-        name: poetry-dist-objects-ubuntu-latest
-        name: poetry-dist-objects-windows-latest
+  - name: Download build objects
+    uses: actions/download-artifact@v2
+    with:
+      name: poetry-dist-objects-macos-latest
+      name: poetry-dist-objects-ubuntu-latest
+      name: poetry-dist-objects-windows-latest
 
-    - name: Extract files
-      run: |
-        sudo apt-get install unzip
-        unzip poetry-dist-objects-macos-latest -d macos
-        unzip poetry-dist-objects-ubuntu-latest -d ubuntu
-        unzip poetry-dist-objects-windows-latest -d windows
-        mkdir dist
-        mv macos/*.whl dist/
-        mv windows/*.whl windows/
-        mv ubuntu/* dist/
+  - name: Extract files
+    run: |
+      sudo apt-get install unzip
+      unzip poetry-dist-objects-macos-latest -d macos
+      unzip poetry-dist-objects-ubuntu-latest -d ubuntu
+      unzip poetry-dist-objects-windows-latest -d windows
+      mkdir dist
+      mv macos/*.whl dist/
+      mv windows/*.whl windows/
+      mv ubuntu/* dist/
 
-    - name: Publish distribution 📦 to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        repository_url: https://test.pypi.org/legacy/
+  - name: Publish distribution 📦 to Test PyPI
+    uses: pypa/gh-action-pypi-publish@master
+    with:
+      password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      repository_url: https://test.pypi.org/legacy/
