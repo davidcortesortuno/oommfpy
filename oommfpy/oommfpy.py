@@ -144,14 +144,15 @@ class FieldData(object):
                       'xmin': 'xmin', 'ymin': 'ymin', 'zmin': 'zmin',
                       'xmax': 'xmax', 'ymax': 'ymax', 'zmax': 'zmax',
                       'valuedim': 'valuedim',
-                      'xnodes': 'nx', 'ynodes': 'ny', 'znodes': 'nz'}
+                      'xnodes': 'nx', 'ynodes': 'ny', 'znodes': 'nz',
+                      }
 
         # data_dict: Dict[str, Any] = {}
 
         # Regex search the attributes. Stepsizes are specified as dx, dy, dz
         for k in HeaderDict.keys():
 
-            num_val = re.search(r'(?<={}: )[0-9\-\.e]+'.format(k), data)
+            num_val = re.search(r'(?<={}:) +[0-9\-\.e]+'.format(k), data)
 
             # .................................................................
             # Only OVF 2.0 file format allows arbitrary number of dimensions
@@ -160,7 +161,8 @@ class FieldData(object):
                 if num_val is None:
                     setattr(self, HeaderDict[k], 3)
                 else:
-                    setattr(self, HeaderDict[k], int(num_val.group(0)))
+                    num_val = num_val.group(0).lstrip()
+                    setattr(self, HeaderDict[k], int(num_val))
 
             # .................................................................
             # Rectangular grids specify the number of nodes/mesh-points in
@@ -169,14 +171,26 @@ class FieldData(object):
                 if num_val is None:
                     setattr(self, HeaderDict[k], None)
                 else:
-                    setattr(self, HeaderDict[k], int(num_val.group(0)))
+                    num_val = num_val.group(0).lstrip()
+                    setattr(self, HeaderDict[k], int(num_val))
             # .................................................................
 
             else:
                 if num_val is None:
                     raise Exception(f'Unable to find value for {k}')
                 else:
-                    setattr(self, HeaderDict[k], float(num_val.group(0)))
+                    num_val = num_val.group(0).lstrip()
+                    setattr(self, HeaderDict[k], float(num_val))
+
+        # .....................................................................
+        # Try to get numerical values from Desc attributes (optional):
+        HeaderDictOpt = {'Total simulation time': 'total_simulation_time'}
+        for k in HeaderDictOpt.keys():
+            num_val = re.search(r'(?<={}:) +[0-9\-\.e]+'.format(k), data)
+            if num_val is not None:
+                num_val = num_val.group(0).lstrip()
+                setattr(self, HeaderDictOpt[k], float(num_val))
+        # .....................................................................
 
         # Add data format from last line
         datafmt = re.search(r'(?<=Begin: Data ).+', data)
