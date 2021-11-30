@@ -36,6 +36,11 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
 
         self._output = None
 
+        # time
+        self._timesteps = []
+        self._timestepsInt = []
+        self._timecounter = 0
+
     # @smproperty.stringvector(name="FileName")
     # @smdomain.filelist()
     # @smhint.filechooser(
@@ -67,24 +72,60 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
         self.Modified()
 
     # Trying to read multiple files:
-    @smproperty.xml("""
-      <StringVectorProperty animateable="0"
-                                clean_command="RemoveAllFileNames"
-                                command="AddFileName"
-                                name="FileName"
-                                number_of_elements="1"
-                                panel_visibility="never"
-                                repeat_command="1">
-            <FileListDomain name="files" />
-          </StringVectorProperty>
-    """)
+    # @smproperty.xml("""
+    #   <StringVectorProperty animateable="0"
+    #                             clean_command="RemoveAllFileNames"
+    #                             command="AddFileName"
+    #                             name="FileName"
+    #                             number_of_elements="1"
+    #                             panel_visibility="never"
+    #                             repeat_command="1">
+    #         <FileListDomain name="files" />
+    #       </StringVectorProperty>
+    # """)
+    @smproperty.stringvector(name="FileNames",
+                             label="File Names",
+                             animateable="1",
+                             clean_command="RemoveAllFileNames",
+                             command="AddFileName",
+                             repeat_command="1",
+                             number_of_elements="1",
+                             panel_visibility="never"
+                             )
+    @smdomain.filelist()
+    @smhint.filechooser(extensions=oommfpy_extensions,
+                        file_description="OOMMFPy ovf and omf supported files")
     def AddFileName(self, filename):
+        if filename == 'None':
+            return
+
         if self._filename != filename:
             self._filename = filename
 
             self._fileList.append(filename)
 
             self.Modified()
+
+            # Try to find timestep from the omf file, if not just use the order
+            # of files added in Paraview
+            # Use oommfpy to read the mesh
+            mesh = oommfpy.FieldData(self._filename)
+            self._timestepsInt.append(self._timecounter)
+            # We will not use the FILE's timestep for now as it might be the
+            # case where multiple files have the same time (relaxed with
+            # energy minimizer)
+            # We will follow Paraview's file loading order for now
+            # try:
+            #     timestep = mesh.total_simulation_time
+            # except AttributeError:
+            #     timestep = self._timecounter
+            timestep = self._timecounter
+            self._timecounter += 1
+
+            self._timesteps.append(timestep)
+
+            # Add timestep(s) to internal tracking
+            # self._timesteps = sorted(self._timesteps)
 
     @smproperty.xml("""
         <StringVectorProperty
@@ -106,12 +147,30 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
     def RemoveAllFileNames(self):
         print('Cleaning file list')
         self._fileList.clear()
+        self._timesteps.clear()
+        self._timecounter = 0
 
-    # @smproperty.doublevector(name="TimestepValues",
-    #                          information_only="1",
-    #                          repeatable="1")
-    # def GetTimestepValues(self):
-    #     print(self._filename)
+    def RequestInformation(self, request, inInfoVec, outInfoVec):
+
+        executive = self.GetExecutive()
+        outInfo = outInfoVec.GetInformationObject(0)
+        outInfo.Remove(executive.TIME_STEPS())
+        outInfo.Remove(executive.TIME_RANGE())
+        timesteps = self._timesteps
+        # print(executive.TIME_STEPS())
+        if self._timesteps != []:
+            for t in timesteps:
+                outInfo.Append(executive.TIME_STEPS(), t)
+            outInfo.Append(executive.TIME_RANGE(), timesteps[0])
+            outInfo.Append(executive.TIME_RANGE(), timesteps[-1])
+
+        return 1
+
+    @smproperty.doublevector(name="TimestepValues",
+                             information_only="1",
+                             repeatable="1")
+    def GetTimestepValues(self):
+        return self._timesteps
 
     def InitializeSystem(self, request, inInfoVec, outInfoVec):
 
@@ -122,6 +181,21 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
         output = vtkRectilinearGrid.GetData(outInfoVec)
         output.Initialize()
 
+        # ---------------------------------------------------------------------
+        # Check if time Index changed from Paraview, and update filename
+        # if necessary
+        executive = self.GetExecutive()
+        outinfo = outInfoVec.GetInformationObject(0)
+        time = outinfo.Get(executive.UPDATE_TIME_STEP())
+        time_idx = self._timesteps.index(int(time))
+        updatedFile = self._fileList[time_idx]
+        if self._filename != updatedFile:
+            self._filename = updatedFile
+        # Necessary? :
+        output.GetInformation().Set(output.DATA_TIME_STEP(),
+                                    self._timesteps[time_idx])
+        # ---------------------------------------------------------------------
+
         # Use oommfpy to read the mesh
         if self._filename.endswith('omf'):
             mesh = oommfpy.MagnetisationData(self._filename)
@@ -129,7 +203,7 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
             mesh = oommfpy.FieldData(self._filename)
 
         mesh.generate_coordinates()
-        print('Reloading field')
+        print('Reloading OOMMFPy field')
         mesh.generate_field()
 
         return output, mesh
