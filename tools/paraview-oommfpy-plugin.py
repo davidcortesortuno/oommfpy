@@ -41,6 +41,9 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
         self._timestepsInt = []
         self._timecounter = 0
 
+        self.output = None
+        self.mesh = None
+
     # @smproperty.stringvector(name="FileName")
     # @smdomain.filelist()
     # @smhint.filechooser(
@@ -178,8 +181,11 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
         # (NOT WORKING)
         # if self._output is None:
 
-        output = vtkRectilinearGrid.GetData(outInfoVec)
-        output.Initialize()
+        if self.output is None:
+            output = vtkRectilinearGrid.GetData(outInfoVec)
+            output.Initialize()
+        else:
+            output = self.output
 
         # ---------------------------------------------------------------------
         # Check if time Index changed from Paraview, and update filename
@@ -196,13 +202,22 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
                                     self._timesteps[time_idx])
         # ---------------------------------------------------------------------
 
-        # Use oommfpy to read the mesh
-        if self._filename.endswith('omf'):
-            mesh = oommfpy.MagnetisationData(self._filename)
-        else:
-            mesh = oommfpy.FieldData(self._filename)
+        # ASSUMING here that the files have the same structure so we do not
+        # reload the coordinates again
 
-        mesh.generate_coordinates()
+        # Use oommfpy to read the mesh
+        # if self._filename.endswith('omf'):
+        #     mesh = oommfpy.MagnetisationData(self._filename)
+        # else:
+        #     mesh = oommfpy.FieldData(self._filename)
+        if self.mesh is None:
+            mesh = oommfpy.FieldData(self._filename)
+            mesh.generate_coordinates()
+        else:
+            mesh = self.mesh
+
+        mesh.input_file = self._filename
+
         print('Reloading OOMMFPy field')
         mesh.generate_field()
 
