@@ -66,11 +66,16 @@ def test_vtk_writer():
             )
 
     # Write VTK file
-    vtk_fname = 'test_c_vtk_writer.vtk'
-    ot.clib.WriteVTK_RectilinearGrid_C(grid[0], grid[1], grid[2],
-                                       m, Ms,
-                                       nx, ny, nz,
-                                       vtk_fname)
+    vtk_fname = 'test_c_vtk_writer.vti'
+    # ot.clib.WriteVTK_RectilinearGrid_C(grid[0], grid[1], grid[2],
+    #                                    m, Ms,
+    #                                    nx, ny, nz,
+    #                                    vtk_fname)
+    ot.clib.WriteVTK_ImageData_C(np.array([0., 0., 0.]),
+                                 np.array([1., 1., 1.]),
+                                 m, Ms,
+                                 nx, ny, nz,
+                                 vtk_fname)
 
     # TODO:
     # Reading the VTK file and transorming the binary data to analyse it
@@ -139,7 +144,8 @@ def test_vtk_writer_speed():
 if __name__ == "__main__":
 
     # Generate the OMF file with the 200 x 200 x 1 mesh
-    generate_omfs()
+    # generate_omfs()
     # Compare the conversion of the OMF file into VTK using the C library
     # with a conversion using PyVTK
-    test_vtk_writer_speed()
+    # test_vtk_writer_speed()
+    test_vtk_writer()

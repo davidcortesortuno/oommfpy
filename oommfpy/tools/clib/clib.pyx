@@ -10,6 +10,12 @@ cdef extern from "clib.h":
                                   char * fname
                                   )
 
+    void WriteVTK_ImageData(double * r0, double * dr,
+                            double * m, double * Ms,
+                            int nx, int ny, int nz,
+                            char * fname
+                            )
+
 # -----------------------------------------------------------------------------
 
 def WriteVTK_RectilinearGrid_C(double [:] gridx,
@@ -29,3 +35,20 @@ def WriteVTK_RectilinearGrid_C(double [:] gridx,
                              nx, ny, nz,
                              &c_string[0]
                              )
+
+def WriteVTK_ImageData_C(double [:] r0,
+                         double [:] dr,
+                         double [:] m,
+                         double [:] Ms,
+                         nx, ny, nz,
+                         fname
+                         ):
+    cdef bytes py_bytes = fname.encode()
+    cdef char* c_string = py_bytes
+
+    # fname_ = fname.encode('utf-8')
+    WriteVTK_ImageData(&r0[0], &dr[0],
+                       &m[0], &Ms[0],
+                       nx, ny, nz,
+                       &c_string[0]
+                       )
