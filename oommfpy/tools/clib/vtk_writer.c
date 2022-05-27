@@ -78,13 +78,13 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
 // If the mesh is made up of nx * ny * nz cells, it has
 // (nx + 1) * (ny + 1) * (nz + 1) vertices.
 // ImageData is the most simple grid: regular cells in x, y and z positions
-void WriteVTK_ImageData(double * r0,  // Origin
-                        double * dr,  // Spacings: dx, dy, dz
-                        double * m,   // 3 * nx*ny*nz array
-                        double * Ms,  // nx*ny*nz array
-                        int nx, int ny, int nz,
-                        char * fname
-                        ) {
+void WriteVTK_ImageData_XML(double * r0,  // Origin
+                            double * dr,  // Spacings: dx, dy, dz
+                            double * m,   // 3 * nx*ny*nz array
+                            double * Ms,  // nx*ny*nz array
+                            int nx, int ny, int nz,
+                            char * fname
+                            ) {
 
     // int x = 1;
     // u_int8_t ENDIANNESS = *((char*)&x) == 1;
@@ -108,35 +108,65 @@ void WriteVTK_ImageData(double * r0,  // Origin
     sprintf(header + strlen(header), "    <Piece Extent=\"0 %d 0 %d 0 %d\">\n", nx,  ny, nz);
     fprintf(fptr, "%s", header);
 
+
     // DATA -------------------------------------------------------------------
     // Will be appended, see: https://vtk.org/Wiki/VTK_XML_Formats
     //                        https://kitware.github.io/vtk-examples/site/VTKFileFormats/
-    // If the data is not appended, it has to be base-64 encoded (we would need
+    // If the data is NOT appended, it has to be base-64 encoded (we would need
     // a library or a header for this)
-    sprintf(header, "      <CellData Vectors=\"m\">\n");
+
+    // Appended data: The format is
+    //          NNNN<data>NNNN<data>NNNN<data>
+    //          ^         ^         ^
+    //          1         2         3
+    //
+    // where each "NNNN" is an unsigned 32-bit integer (4 bytes), and <data>
+    // consists of a number of bytes equal to the preceding NNNN value.  The
+    // corresponding DataArray elements must have format="appended" and offset
+    // attributes equal to the following:
+    //
+    // 1.) offset="0"
+    // 2.) offset="(4+NNNN1)"
+    // 3.) offset="(4+NNNN1+4+NNNN2)"
+    // ...
+
+    // Here we compute the lengths for the spin and the Ms data as int and byte
+    union
+    {
+        unsigned int integer;
+        unsigned char byte[4];
+    } m_data_len, Ms_data_len;
+    m_data_len.integer = 3 * nx * ny * nz * sizeof(float);  // float -> 4 bytes
+    Ms_data_len.integer = nx * ny * nz * sizeof(float);
+
+    // Start the data .........................................................
+    sprintf(header, "      <CellData Vectors=\"m\" Scalars=\"Ms\">\n");
+
     sprintf(header + strlen(header), 
             "        <DataArray type=\"Float32\" Name=\"m\" NumberOfComponents=\"3\" format=\"appended\" offset=\"0\"/>\n");
+
+    // offset bytes include the 4 bytes from the size of m after "_"
+    sprintf(header + strlen(header), 
+            "        <DataArray type=\"Float32\" Name=\"Ms\" format=\"appended\" offset=\"%d\"/>\n", 4 + m_data_len.integer);
+
     fprintf(fptr, "%s", header);
+
+    // ........................................................................
 
     sprintf(header, "      </CellData>\n");
     sprintf(header + strlen(header), "    </Piece>\n");
     sprintf(header + strlen(header), "  </ImageData>\n");
     fprintf(fptr, "%s", header);
 
+    // ........................................................................
+    // Appended data (not base64 encoded -> raw)
+    // Start with "_"
     sprintf(header, "  <AppendedData encoding=\"raw\">\n    _");
     fprintf(fptr, "%s", header);
 
-    // Appended data starts with _NNNN where NNNN is a 4-bytes integer
-    // containing the n of bytes in the data array as 4 chars
-    union
-    {
-        unsigned int integer;
-        unsigned char byte[4];
-    } mdata_len;
-    mdata_len.integer = 3 * nx * ny * nz * sizeof(float);  // float -> 4 bytes
-    fwrite(&mdata_len.byte[0], sizeof(mdata_len.byte), 1, fptr);
-    printf("Bytes: %u Size: %d\n", mdata_len.byte[0], mdata_len.integer);
-
+    // m data: (write the length as 4 bytes int first, then data)
+    fwrite(&m_data_len.byte[0], sizeof(m_data_len.byte), 1, fptr);
+    printf("m Bytes: %u Size: %d\n", m_data_len.byte[0], m_data_len.integer);
     // fwrite(&m[0], sizeof(float), 3 * nx * ny * nz, fptr);
     for(int i = 0; i < (nx * ny * nz); i++) {
         float mx = m[3 * i    ];
@@ -147,8 +177,20 @@ void WriteVTK_ImageData(double * r0,  // Origin
         fwrite(&my, sizeof(my), 1, fptr);
         fwrite(&mz, sizeof(mz), 1, fptr);
     }
+
+    // Ms data:
+    fwrite(&Ms_data_len.byte[0], sizeof(Ms_data_len.byte), 1, fptr);
+    printf("Ms Bytes: %u Size: %d\n", Ms_data_len.byte[0], Ms_data_len.integer);
+    // fwrite(&Ms[0], sizeof(float), nx * ny * nz, fptr);
+    for(int i = 0; i < (nx * ny * nz); i++) {
+        float M = Ms[i];
+        fwrite(&M, sizeof(M), 1, fptr);
+    }
+
     sprintf(header, "\n  </AppendedData>\n");
     fprintf(fptr, "%s", header);
+
+    // ........................................................................
 
     sprintf(header, "</VTKFile>");
     fprintf(fptr, "%s", header);
@@ -209,27 +251,34 @@ void WriteVTK_ImageData_XX(double * r0,  // Origin
     // fwrite(&mdata_len.byte, sizeof(mdata_len.byte), 1, fptr);
 
     // pointer to char
-    unsigned char * data_buffer = (unsigned char *) malloc(sizeof(float) * (3 * nx * ny * nz + 1));
+    unsigned char * data_buffer = (unsigned char *) malloc(sizeof(float) * (3 * nx * ny * nz));
+    unsigned char * data_buffer_len = (unsigned char *) malloc(sizeof(float) * (3 * nx * ny * nz));
 
     // Address to the first element of data_buffer -> [] has precedence
-    memcpy(&data_buffer[0], &mdata_len.integer, 4);
+    memcpy(&data_buffer_len[0], &mdata_len.integer, sizeof(int));
 
-    memcpy(&data_buffer[sizeof(float)], &m[0], sizeof(float) * 3 * nx * ny * nz);
+    memcpy(&data_buffer[0], &m[0], sizeof(float) * 3 * nx * ny * nz);
     // for(unsigned int i = 0; i < (nx * ny * nz); ++i) {
     //     for(unsigned int c = 0; c < 3; ++c) {
     //         float m_i = m[3 * i + c];
     //         printf("m_%d: %f \n", c, m_i);
-    //         memcpy(&data_buffer[sizeof(float) * (3 * i + c + 1)], &m_i, sizeof(float));
+    //         memcpy(&data_buffer[sizeof(float) * (3 * i + c)], &m_i, sizeof(float));
     //     }
     // }
 
     unsigned char * data_encoded;
-    data_encoded = base64_encode(data_buffer, sizeof(float) * (3 * nx * ny * nz + 1), NULL);
-    // unsigned char * data_encoded = malloc(sizeof(float) * 3 * nx * ny * nz);
-    // Base64encode(data_encoded, data_buffer, sizeof(float) * 3 * nx * ny * nz);
+    unsigned char * data_encoded_len;
+    size_t * out_len = (size_t *) malloc(sizeof(size_t));
 
-    fwrite(&data_encoded[0], 4, 1, fptr);
-    fwrite(&data_encoded[sizeof(float)], sizeof(float), 3 * nx * ny * nz, fptr);
+    data_encoded_len = base64_encode(data_buffer_len, sizeof(int), out_len);
+    fwrite(&data_encoded_len[0], 1, *out_len, fptr);
+
+    data_encoded = base64_encode(data_buffer, sizeof(float) * (3 * nx * ny * nz), out_len);
+    printf("Encode out length: %zu\n", *out_len);
+    printf("Encode array size: %lu\n", sizeof(data_encoded));
+    fwrite(&data_encoded[0], 1, *out_len, fptr);
+
+    // fwrite(&data_encoded[sizeof(float)], sizeof(float), 3 * nx * ny * nz, fptr);
 
     sprintf(header,                  "\n        </DataArray>\n");
     sprintf(header + strlen(header), "      </CellData>\n");
@@ -244,7 +293,57 @@ void WriteVTK_ImageData_XX(double * r0,  // Origin
 
     fclose(fptr);
     free(data_buffer);
+    free(data_buffer_len);
     free(data_encoded);
+    free(data_encoded_len);
+    free(out_len);
+}
+
+// If the mesh is made up of nx * ny * nz cells, it has
+// (nx + 1) * (ny + 1) * (nz + 1) vertices.
+void WriteVTK_StructuredPoints(double * r0,  // Origin
+                               double * dr,  // Spacings: dx, dy, dz
+                               double * m,   // 3 * nx*ny*nz array
+                               double * Ms,  // nx*ny*nz array
+                               int nx, int ny, int nz,
+                               char * fname
+                               ) {
+
+    char header[1024];
+    FILE * fptr;
+    // Create binary file
+    fptr = fopen(fname, "wb");
+
+    if(fptr == NULL) {
+        printf("Error!");
+        exit(1);
+    }
+
+    sprintf(header,"# vtk DataFile Version 2.0\n");
+    sprintf(header + strlen(header),"OOMMFPY VTK Data\n");
+    sprintf(header + strlen(header),"BINARY\n");
+    sprintf(header + strlen(header),"DATASET %s\n","STRUCTURED_POINTS");
+    fprintf(fptr, "%s", header);
+
+    // COORDINATES ------------------------------------------------------------
+
+    sprintf(header,"DIMENSIONS %d %d %d\n", nx + 1, ny + 1, nz + 1);
+    fprintf(fptr, "%s", header);
+
+    sprintf(header,"ORIGIN %f %f %f\n", r0[0], r0[1], r0[2]);
+    fprintf(fptr, "%s", header);
+
+    sprintf(header,"SPACING %f %f %f\n", dr[0], dr[1], dr[2]);
+    fprintf(fptr, "%s", header);
+
+    // DATA -------------------------------------------------------------------
+
+    int n_cell_data = nx * ny * nz;
+    WriteMagData(m, Ms, n_cell_data, fptr, header);
+
+    // ------------------------------------------------------------------------
+
+    fclose(fptr);
 }
 
 // If the mesh is made up of nx * ny * nz cells, it has

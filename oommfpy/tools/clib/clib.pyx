@@ -10,11 +10,11 @@ cdef extern from "clib.h":
                                   char * fname
                                   )
 
-    void WriteVTK_ImageData(double * r0, double * dr,
-                            double * m, double * Ms,
-                            int nx, int ny, int nz,
-                            char * fname
-                            )
+    void WriteVTK_ImageData_XML(double * r0, double * dr,
+                                double * m, double * Ms,
+                                int nx, int ny, int nz,
+                                char * fname
+                                )
 
 # -----------------------------------------------------------------------------
 
@@ -47,8 +47,7 @@ def WriteVTK_ImageData_C(double [:] r0,
     cdef char* c_string = py_bytes
 
     # fname_ = fname.encode('utf-8')
-    WriteVTK_ImageData(&r0[0], &dr[0],
-                       &m[0], &Ms[0],
-                       nx, ny, nz,
-                       &c_string[0]
-                       )
+    WriteVTK_ImageData_XML(&r0[0], &dr[0], &m[0], &Ms[0],
+                           nx, ny, nz,
+                           &c_string[0]
+                           )
