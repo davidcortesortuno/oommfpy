@@ -4,11 +4,13 @@
 #include <stdlib.h>
 
 typedef unsigned char uchar;
-// Reverse byte to BigEndian representation (reverse byte order?) from the
-// LittleEndian repr given in Linux (in other architectures this might not be
-// necessary)
-double DoubleSwap( double f )
+// Reverse byte order to BigEndian representation from the LittleEndian repr
+// (eg in Linux) (in other architectures this might not be necessary)
+double DoubleSwap(double f, u_int8_t endn)
 {
+   // If big endian, do not do anything
+   if (!endn) {return f;}
+
    union
    {
       double f;
@@ -31,9 +33,9 @@ double DoubleSwap( double f )
 /* Write array of doubles with size n into the file given by the pointer fptr
  * Values are written with the BigEndian order
  */
-void WriteDouble(double * arr, int n, FILE * fptr) {
+void WriteDouble(double * arr, int n, FILE * fptr, u_int8_t endn) {
     for(int i = 0; i < n; i++) {
-        double f = DoubleSwap(arr[i]);
+        double f = DoubleSwap(arr[i], endn);
         fwrite(&f, sizeof(f), 1, fptr);
     }
 }
@@ -42,7 +44,8 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
                   double * Ms,  // nx*ny*nz array
                   int n,
                   FILE * fptr,
-                  char * header
+                  char * header,
+                  u_int8_t endn
                   ) {
 
     // Magnetisation **********************************************************
@@ -56,7 +59,7 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
     fprintf(fptr, "%s", header);
     for(int i = 0; i < n; i++) {
         // printf("%f\n", Ms[i]);
-        double d = DoubleSwap(Ms[i]);
+        double d = DoubleSwap(Ms[i], endn);
         fwrite(&d, sizeof(d), 1, fptr);
     }
 
@@ -65,9 +68,9 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
     sprintf(header,"\nVECTORS m double\n");
     fprintf(fptr, "%s", header);
     for(int i = 0; i < n; i++) {
-        double dx = DoubleSwap(m[3 * i    ]);
-        double dy = DoubleSwap(m[3 * i + 1]);
-        double dz = DoubleSwap(m[3 * i + 2]);
+        double dx = DoubleSwap(m[3 * i    ], endn);
+        double dy = DoubleSwap(m[3 * i + 1], endn);
+        double dz = DoubleSwap(m[3 * i + 2], endn);
         fwrite(&dx, sizeof(dx), 1, fptr);
         fwrite(&dy, sizeof(dy), 1, fptr);
         fwrite(&dz, sizeof(dz), 1, fptr);
@@ -82,6 +85,9 @@ void WriteVTK_RectilinearGrid(double * gridx, double * gridy, double * gridz,
                               int nx, int ny, int nz,
                               char * fname
                               ) {
+    int x = 1;
+    // Little endian: true
+    u_int8_t ENDIANNESS = *((char*)&x) == 1;
 
     char header[1024];
     FILE * fptr;
@@ -106,20 +112,20 @@ void WriteVTK_RectilinearGrid(double * gridx, double * gridy, double * gridz,
 
     sprintf(header,"X_COORDINATES %d double\n", nx + 1);
     fprintf(fptr, "%s", header);
-    WriteDouble(gridx, nx + 1, fptr);
+    WriteDouble(gridx, nx + 1, fptr, ENDIANNESS);
 
     sprintf(header,"\nY_COORDINATES %d double\n", ny + 1);
     fprintf(fptr, "%s", header);
-    WriteDouble(gridy, ny + 1, fptr);
+    WriteDouble(gridy, ny + 1, fptr, ENDIANNESS);
 
     sprintf(header,"\nZ_COORDINATES %d double\n", nz + 1);
     fprintf(fptr, "%s", header);
-    WriteDouble(gridz, nz + 1, fptr);
+    WriteDouble(gridz, nz + 1, fptr, ENDIANNESS);
 
     // DATA -------------------------------------------------------------------
 
     int n_cell_data = nx * ny * nz;
-    WriteMagData(m, Ms, n_cell_data, fptr, header);
+    WriteMagData(m, Ms, n_cell_data, fptr, header, ENDIANNESS);
 
     // ------------------------------------------------------------------------
 
