@@ -47,17 +47,19 @@ def generate_omfs():
 def test_vtk_writer():
     nx, ny, nz = 3, 3, 1
     m = np.array([-1., 0., 1.,
-                  0, 0, 1,
+                  0, 0.5, 1,
                   1, 0, 0,
                   -1, 1, 1,
                   0, 1, 1,
                   0, 1, 1,
-                  -1, 0, 0,
+                  -1, 0.75, 0,
                   1, 0, 0,
                   1, 0, 0
                   ])
 
     Ms = np.ones(9) * 5.
+    Ms[3:5] = 8.
+    Ms[6:9] = 15.
 
     xmin, xmax, ymin, ymax, zmin, zmax = 0., 3., 0., 3, 0., 1.
     grid = (np.linspace(xmin, xmax, nx + 1),
@@ -65,12 +67,20 @@ def test_vtk_writer():
             np.linspace(zmin, zmax, nz + 1)
             )
 
-    # Write VTK file
-    vtk_fname = 'test_c_vtk_writer.vtk'
+    # Write VTK file in legacy format
+    vtk_fname = 'test_c_vtk_writer_rect.vtk'
     ot.clib.WriteVTK_RectilinearGrid_C(grid[0], grid[1], grid[2],
                                        m, Ms,
                                        nx, ny, nz,
                                        vtk_fname)
+
+    # Use different base coordinates:
+    vtk_fname = 'test_c_vtk_writer_imdata.vti'
+    ot.clib.WriteVTK_ImageData_XML_C(-1.5, -1.0, -2.0,
+                                     1.0, 1.0, 1.0,
+                                     m, Ms,
+                                     nx, ny, nz,
+                                     vtk_fname)
 
     # TODO:
     # Reading the VTK file and transorming the binary data to analyse it
@@ -143,3 +153,6 @@ if __name__ == "__main__":
     # Compare the conversion of the OMF file into VTK using the C library
     # with a conversion using PyVTK
     test_vtk_writer_speed()
+
+    # Test rect grid and image data VTK writers
+    test_vtk_writer()
