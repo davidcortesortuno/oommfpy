@@ -363,11 +363,15 @@ class FieldData(object):
             self.nfield_y[_filter] /= self.field_norm[_filter]
             self.nfield_z[_filter] /= self.field_norm[_filter]
 
-    def generate_coordinates(self) -> None:
+    def generate_coordinates(self, compute_vertex_grid=False) -> None:
         """
         Create the self.x, self.y, self.z arrays with the coordinates of the
         mesh sites. Unique values of the coordinates are stored in the
-        correpsonding xs, yz, zs arrays
+        corresponding xs, yz, zs arrays
+
+        compute_vertex_grid
+            Generate the grid of vertices of the mesh of cuboids in the
+            `vertex_grid` member. Useful for saving rectangular grid VTKs
         """
         xs, ys, zs = (np.arange(float(self.nx)),
                       np.arange(float(self.ny)),
@@ -397,12 +401,12 @@ class FieldData(object):
         self.zs = np.unique(self.z)
 
         # ---------------------------------------------------------------------
-        # Generate the grid of vertices of the mesh of cuboids, useful for
-        # saving VTKs
-        self.grid = (np.linspace(self.xmin, self.xmax, self.nx + 1),
-                     np.linspace(self.ymin, self.ymax, self.ny + 1),
-                     np.linspace(self.zmin, self.zmax, self.nz + 1)
-                     )
+
+        if compute_vertex_grid:
+            self.vertex_grid = (np.linspace(self.xmin, self.xmax, self.nx + 1),
+                                np.linspace(self.ymin, self.ymax, self.ny + 1),
+                                np.linspace(self.zmin, self.zmax, self.nz + 1)
+                                )
 
 
 # -----------------------------------------------------------------------------
