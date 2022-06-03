@@ -113,6 +113,8 @@ class FieldData(object):
         self.xbase = self.ybase = self.zbase = 0.0
         self.nx = self.ny = self.nz = 0
         self.data_format = ''
+        self.valueunits = None
+        self.valuemultiplier = None
 
         self.read_header()
 
@@ -136,15 +138,18 @@ class FieldData(object):
         data = ''
         while not line.startswith('# Begin: Data'):
             data += line
+            # ascii data in binary file has to be decoded:
             line = _file.readline().decode()
         data += line
 
+        # Values xbase, ... are  specified below (after getting meshtype)
+        # TODO: add 'pointcount'
         HeaderDict = {'xstepsize': 'dx',  'ystepsize': 'dy', 'zstepsize': 'dz',
-                      # 'xbase': 'xbase',  'ybase': 'ybase', 'zbase': 'zbase',
                       'xmin': 'xmin', 'ymin': 'ymin', 'zmin': 'zmin',
                       'xmax': 'xmax', 'ymax': 'ymax', 'zmax': 'zmax',
                       'valuedim': 'valuedim',
-                      'xnodes': 'nx', 'ynodes': 'ny', 'znodes': 'nz'}
+                      'xnodes': 'nx', 'ynodes': 'ny', 'znodes': 'nz',
+                      }
 
         # data_dict: Dict[str, Any] = {}
 
@@ -177,6 +182,18 @@ class FieldData(object):
                     raise Exception(f'Unable to find value for {k}')
                 else:
                     setattr(self, HeaderDict[k], float(num_val.group(0)))
+
+        # Value units ---------------------------------------------------------
+        # OVF 1.0 uses valueunit while 2.0 uses valueunits whic can be multiple
+        # values: (same num of multipliers as units)
+        num_val = re.search(r'valueunit[s]?: ([A-Za-z0-9\^\/\s]+)\n', data)
+        if num_val is not None:
+            self.valueunits = num_val.group(1).split()
+
+        num_val = re.search(r'valuemultiplier: ([0-9\-\.e\s]+)', data)
+        if num_val is not None:
+            self.valuemultiplier = num_val.group(1).split()
+        # ---------------------------------------------------------------------
 
         # Add data format from last line
         datafmt = re.search(r'(?<=Begin: Data ).+', data)
