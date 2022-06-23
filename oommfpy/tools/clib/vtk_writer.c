@@ -6,7 +6,7 @@
 typedef unsigned char uchar;
 // Reverse byte order to BigEndian representation from the LittleEndian repr
 // (eg in Linux) (in other architectures this might not be necessary)
-double DoubleSwap(double f, unsigned short endn)
+double DoubleSwap_L2B(double f, unsigned short endn)
 {
    // If big endian, do not do anything
    if (!endn) {return f;}
@@ -30,12 +30,35 @@ double DoubleSwap(double f, unsigned short endn)
    return dat2.f;
 }
 
+// For big endian double, swap bytes to big endian repr
+// This function also converts from double to float
+float DoubleToFloat_B2L(double db, unsigned short endn)
+{
+
+   union
+   {
+      float f;
+      // byte b[4];
+      uchar b[sizeof(float)];
+   } dat1, dat2;
+   dat1.f = db;  // implicit cast double to float
+
+   // If little endian, do not swap
+   if (endn) {return dat1.f;}
+
+   dat2.b[0] = dat1.b[3];
+   dat2.b[1] = dat1.b[2];
+   dat2.b[2] = dat1.b[1];
+   dat2.b[3] = dat1.b[0];
+   return dat2.f;
+}
+
 /* Write array of doubles with size n into the file given by the pointer fptr
  * Values are written with the BigEndian order
  */
 void WriteDouble(double * arr, int n, FILE * fptr, unsigned short endn) {
     for(int i = 0; i < n; i++) {
-        double f = DoubleSwap(arr[i], endn);
+        double f = DoubleSwap_L2B(arr[i], endn);
         fwrite(&f, sizeof(f), 1, fptr);
     }
 }
@@ -59,7 +82,7 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
     fprintf(fptr, "%s", header);
     for(int i = 0; i < n; i++) {
         // printf("%f\n", Ms[i]);
-        double d = DoubleSwap(Ms[i], endn);
+        double d = DoubleSwap_L2B(Ms[i], endn);
         fwrite(&d, sizeof(d), 1, fptr);
     }
 
@@ -68,9 +91,9 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
     sprintf(header,"\nVECTORS m double\n");
     fprintf(fptr, "%s", header);
     for(int i = 0; i < n; i++) {
-        double dx = DoubleSwap(m[3 * i    ], endn);
-        double dy = DoubleSwap(m[3 * i + 1], endn);
-        double dz = DoubleSwap(m[3 * i + 2], endn);
+        double dx = DoubleSwap_L2B(m[3 * i    ], endn);
+        double dy = DoubleSwap_L2B(m[3 * i + 1], endn);
+        double dz = DoubleSwap_L2B(m[3 * i + 2], endn);
         fwrite(&dx, sizeof(dx), 1, fptr);
         fwrite(&dy, sizeof(dy), 1, fptr);
         fwrite(&dz, sizeof(dz), 1, fptr);
@@ -149,8 +172,8 @@ void WriteVTK_ImageData_XML(double r0x, double r0y, double r0z,  // Origin
                             char * fname
                             ) {
 
-    // int x = 1;
-    // u_int8_t ENDIANNESS = *((char*)&x) == 1;
+    int x = 1;
+    unsigned short ENDIANNESS = *((char*)&x) == 1;
 
     char header[1024];
     FILE * fptr;
@@ -231,11 +254,11 @@ void WriteVTK_ImageData_XML(double r0x, double r0y, double r0z,  // Origin
     // printf("m Bytes: %u Size: %d\n", m_data_len.byte[0], m_data_len.integer);
     // Can't do a single line write since we have to cast double into float :
     // fwrite(&m[0], sizeof(float), 3 * nx * ny * nz, fptr);
-    // So make a loop:
+    // So make a loop: (take into account endianness)
     for(int i = 0; i < (nx * ny * nz); i++) {
-        float mx = m[3 * i    ];  // implicit cast
-        float my = m[3 * i + 1];
-        float mz = m[3 * i + 2];
+        float mx = DoubleToFloat_B2L(m[3 * i    ], ENDIANNESS);  // implicit cast double to float
+        float my = DoubleToFloat_B2L(m[3 * i + 1], ENDIANNESS);
+        float mz = DoubleToFloat_B2L(m[3 * i + 2], ENDIANNESS);
         fwrite(&mx, sizeof(mx), 1, fptr);
         fwrite(&my, sizeof(my), 1, fptr);
         fwrite(&mz, sizeof(mz), 1, fptr);
@@ -247,7 +270,7 @@ void WriteVTK_ImageData_XML(double r0x, double r0y, double r0z,  // Origin
     // printf("Ms Bytes: %u Size: %d\n", Ms_data_len.byte[0], Ms_data_len.integer);
     // fwrite(&Ms[0], sizeof(float), nx * ny * nz, fptr);
     for(int i = 0; i < (nx * ny * nz); i++) {
-        float M = Ms[i];
+        float M = DoubleToFloat_B2L(Ms[i], ENDIANNESS);
         fwrite(&M, sizeof(M), 1, fptr);
     }
 

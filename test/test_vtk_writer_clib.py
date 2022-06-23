@@ -97,20 +97,21 @@ def test_vtk_writer_speed():
 
     """
 
-    # C backend ---------------------------------------------------------------
     _file = glob.glob('./vtk_writer_omfs/isolated_sk_Cnv_n_200-Oxs*.omf')[0]
     data = op.MagnetisationData(_file)
     data.generate_field()
-    data.generate_coordinates()
-    output_vtk_file = 'vtk_writer_omfs/isolated_sk_Cnv_n_200.vtk'
+    data.generate_coordinates(compute_vertex_grid=True)
+    NRUN = 30
 
+    # C legacy VTK RectilinearGrid writer -------------------------------------
+    output_vtk_file = 'vtk_writer_omfs/isolated_sk_Cnv_n_200_RG.vtk'
     C_timings = []
-    for i in range(20):
+    for i in range(NRUN):
         start = timeit.default_timer()
 
-        ot.clib.WriteVTK_RectilinearGrid_C(data.grid[0],
-                                           data.grid[1],
-                                           data.grid[2],
+        ot.clib.WriteVTK_RectilinearGrid_C(data.vertex_grid[0] * 1e9,
+                                           data.vertex_grid[1] * 1e9,
+                                           data.vertex_grid[2] * 1e9,
                                            data.field.reshape(-1),
                                            data.field_norm,
                                            data.nx, data.ny, data.nz,
@@ -118,16 +119,39 @@ def test_vtk_writer_speed():
 
         end = timeit.default_timer()
         C_timings.append(end - start)
-    print('C writer (best of 20): ', np.mean(np.array(C_timings)))
+    print(f'C writer (best of {NRUN}): ', np.mean(np.array(C_timings)))
+
+    # C XML ImageData writer --------------------------------------------------
+    output_vtk_file = 'vtk_writer_omfs/isolated_sk_Cnv_n_200_XML.vti'
+    C_timings = []
+    for i in range(NRUN):
+        start = timeit.default_timer()
+
+        ot.clib.WriteVTK_ImageData_XML_C(data.xmin * 1e9,
+                                         data.ymin * 1e9,
+                                         data.zmin * 1e9,
+                                         data.dx * 1e9,
+                                         data.dy * 1e9,
+                                         data.dz * 1e9,
+                                         data.field.reshape(-1),
+                                         data.field_norm,
+                                         data.nx, data.ny, data.nz,
+                                         output_vtk_file)
+
+        end = timeit.default_timer()
+        C_timings.append(end - start)
+    print(f'C XML writer (best of {NRUN}): ', np.mean(np.array(C_timings)))
 
     # PyVTK -------------------------------------------------------------------
     output_vtk_file = 'vtk_writer_omfs/isolated_sk_Cnv_n_200_pyvtk.vtk'
 
     pyvtk_timings = []
-    for i in range(20):
+    for i in range(NRUN):
         start = timeit.default_timer()
 
-        structure = pyvtk.RectilinearGrid(* data.grid)
+        structure = pyvtk.RectilinearGrid(data.vertex_grid[0] * 1e9,
+                                          data.vertex_grid[1] * 1e9,
+                                          data.vertex_grid[2] * 1e9)
         vtk_data = pyvtk.VtkData(structure, "")
 
         # Save the magnetisation
@@ -141,7 +165,7 @@ def test_vtk_writer_speed():
 
         end = timeit.default_timer()
         pyvtk_timings.append(end - start)
-    print('PyVTK writer (best of 20): ', np.mean(np.array(pyvtk_timings)))
+    print(f'PyVTK writer (best of {NRUN}): ', np.mean(np.array(pyvtk_timings)))
 
     # -------------------------------------------------------------------------
 
