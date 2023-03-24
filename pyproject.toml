@@ -9,10 +9,10 @@ license = "BSD-2-Clause"
 readme = "README.md"
 keywords = ["oommf", "omf", "python"]
 repository = "https://github.com/davidcortesortuno/oommfpy"
-build = 'build.py'
+build = 'build_extension.py'
 
 [tool.poetry.dependencies]
-python = "^3.8,<3.10"
+python = "^3.8,<3.11"
 Cython = "^0.29.23"
 numpy = "^1.20.3"
 click = "^7.1"
