@@ -76,7 +76,7 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
         else:
             mesh = oommfpy.FieldData(self._filename)
 
-        mesh.generate_coordinates()
+        mesh.generate_coordinates(compute_vertex_grid=True)
         mesh.generate_field()
 
         # points, cells = mesh.coordinates, mesh.cells
@@ -85,9 +85,9 @@ class OOMMFPyReader(VTKPythonAlgorithmBase):
 
         # Scale the coordinates in nm (somehow small values do not render
         # well in Paraview)
-        output.SetXCoordinates(numpy_support.numpy_to_vtk(mesh.grid[0] * 1e9))
-        output.SetYCoordinates(numpy_support.numpy_to_vtk(mesh.grid[1] * 1e9))
-        output.SetZCoordinates(numpy_support.numpy_to_vtk(mesh.grid[2] * 1e9))
+        output.SetXCoordinates(numpy_support.numpy_to_vtk(mesh.vertex_grid[0] * 1e9))
+        output.SetYCoordinates(numpy_support.numpy_to_vtk(mesh.vertex_grid[1] * 1e9))
+        output.SetZCoordinates(numpy_support.numpy_to_vtk(mesh.vertex_grid[2] * 1e9))
 
         # Cell data
         # Spin directions
