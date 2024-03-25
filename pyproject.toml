@@ -9,7 +9,6 @@ license = "BSD-2-Clause"
 readme = "README.md"
 keywords = ["oommf", "omf", "python"]
 repository = "https://github.com/davidcortesortuno/oommfpy"
-build = 'build_extension.py'
 
 [tool.poetry.dependencies]
 python = "^3.8,<3.12"
@@ -28,5 +27,9 @@ plot_omf = "oommfpy.tools.plot_slices:plot_omf_slices_cli"
 omf2vtk = "oommfpy.tools.omf2vtk:omf2vtk_cli"
 
 [build-system]
-requires = ["setuptools", "poetry-core>=1.0.0"]
+requires = ["setuptools", "cython", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+ 
+[tool.poetry.build]
+script = "build_extension.py"
+generate-setup-file = true

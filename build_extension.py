@@ -1,6 +1,6 @@
 # import os
-from distutils.command.build_ext import build_ext
-from distutils.core import Extension
+from setuptools.command.build_ext import build_ext
+from setuptools import Extension
 
 # See if Cython is installed
 try:
@@ -37,3 +37,5 @@ else:
             ),
             'cmdclass': {'build_ext': build_ext}
         })
+
+        print('Compiling Cython module')
