@@ -12,10 +12,10 @@ repository = "https://github.com/davidcortesortuno/oommfpy"
 build = 'build_extension.py'
 
 [tool.poetry.dependencies]
-python = "^3.8,<3.11"
+python = "^3.8,<3.12"
 Cython = "^0.29.23"
 numpy = "^1.20.3"
-click = "^7.1"
+click = "^8.0.0"
 matplotlib = "^3.3.4"
 scipy = "^1.6.3"
 
