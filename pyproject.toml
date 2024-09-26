@@ -27,7 +27,7 @@ plot_omf = "oommfpy.tools.plot_slices:plot_omf_slices_cli"
 omf2vtk = "oommfpy.tools.omf2vtk:omf2vtk_cli"
 
 [build-system]
-requires = ["setuptools", "cython", "poetry-core>=1.0.0"]
+requires = ["setuptools", "cython", "poetry-core>=1.8.3"]
 build-backend = "poetry.core.masonry.api"
  
 [tool.poetry.build]
