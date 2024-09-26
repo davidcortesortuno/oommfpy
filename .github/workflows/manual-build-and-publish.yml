@@ -46,7 +46,6 @@ jobs:
         name: poetry-dist-objects-${{ matrix.os }}
         path: |
           dist/*.whl
-          dist/*.zip
 
   pypipublish:
     needs: build_packages
