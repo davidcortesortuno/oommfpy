@@ -39,7 +39,7 @@ jobs:
         python -m poetry build
 
     - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v4
       with:
         name: poetry-dist-objects-${{ matrix.os }}
         path: |
