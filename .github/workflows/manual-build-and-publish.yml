@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
     branches: [ test_gh_actions ]
 
+env:
+  FORCE_COLOR: 1
+
 jobs:
   build_packages:
     name: Building wheels and main package
@@ -13,14 +16,13 @@ jobs:
         python-version: ['3.10', '3.11', '3.12']
         poetry-version: [1.8.3]
         os: [ubuntu-latest, windows-latest, macos-latest]
-
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
