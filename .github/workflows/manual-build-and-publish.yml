@@ -46,7 +46,6 @@ jobs:
         name: poetry-dist-objects-${{ matrix.os }}
         path: |
           dist/*.whl
-          dist/*.tar.gz
           dist/*.zip
 
   pypipublish:
