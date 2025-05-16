@@ -565,6 +565,11 @@ class MagnetisationData(FieldData):
             # Here we still use central difference at the boundary spins
             # Notice: if we use a 'xy' plane the
             #         x direction is in axis=1 and y direction in axis=0
+            ngbs_px = np._s(1:-1, 2:, :)   # +x
+            ngbs_mx = np._s(1:-1, :-2, :)  # -x
+            ngbs_py = np._s(2:, 1:-1, :)   # +y
+            ngbs_my = np._s(:-2, 1:-1, :)  # +y
+
             sk_num_cross = (np.cross(spin_pad[1:-1, 2:, :],   # s(i+1,j)
                                      spin_pad[2:, 1:-1, :],   # s(i,j+1)
                                      axis=2) +
@@ -578,6 +583,12 @@ class MagnetisationData(FieldData):
                                      spin_pad[:-2, 1:-1, :],  # s(i,j-1)
                                      axis=2)
                             )
+
+            # Correct sites with null neighbours:
+            spin_pad_norm = np.linalg.norm(spin_pad, axis=2)
+            
+            ftr = np.logical_and(spin_pad_norm[ngbs_px] < 1e-8, spin_pad_norm[ngbs_mx] > 0.9)
+            sk_num_cross[]
 
             # The dot product of every site with the cross product between
             # their neighbours that was already computed above
