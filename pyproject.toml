@@ -11,12 +11,13 @@ keywords = ["oommf", "omf", "python"]
 repository = "https://github.com/davidcortesortuno/oommfpy"
 
 [tool.poetry.dependencies]
-python = "^3.10,<3.13"
+python = "^3.10,<3.14"
 Cython = "^3.0.0"
 numpy = "^2.0.0"
 click = "^8.1.0"
 matplotlib = "^3.7.0"
 scipy = "^1.10.0"
+hsluv = "^5.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
